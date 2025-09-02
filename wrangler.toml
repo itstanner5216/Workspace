@@ -1,0 +1,28 @@
+name = "jack-portal"
+main = "src/worker.js"
+compatibility_date = "2024-09-01"
+
+[site]
+bucket = "public"
+
+[[kv_namespaces]]
+binding = "JACK_STORAGE"
+id = "TODO: Replace with your KV namespace ID"
+
+[vars]
+GOOGLE_API_KEY = "TODO: Replace with your Google Custom Search API key"
+GOOGLE_CSE_ID = "TODO: Replace with your Google Custom Search Engine ID"
+BRAVE_API_KEY = "TODO: Replace with your Brave Search API key"
+YANDEX_API_KEY = "TODO: Replace with your Yandex Search API key"
+YANDEX_USER = "TODO: Replace with your Yandex user"
+ADULTMEDIA_API_KEY = "TODO: Replace with your AdultMedia API key"
+USER_AGENT = "Jack-Portal/2.0.0"
+FETCH_TIMEOUT_MS = "10000"
+DEFAULT_LIMIT = "10"
+MAX_LIMIT = "20"
+MIN_LIMIT = "3"
+CACHE_TTL = "3600"
+FOLLOW_LINKS = "false"
+INCLUDE_REDDIT = "false"
+ALLOWED_HOSTS = "[]"
+BLOCKED_HOSTS = "[]"

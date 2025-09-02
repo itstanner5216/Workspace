@@ -33,24 +33,30 @@ vars = { ENVIRONMENT = "production" }
 vars = { ENVIRONMENT = "staging" }
 
 # KV namespace for caching (optional)
-# [[kv_namespaces]]
-# binding = "CACHE"
-# id = "your_kv_namespace_id"
+[[kv_namespaces]]
+binding = "CACHE"
+id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
+preview_id = "02133c1d0165429f8bd8960915d0994e"
 
 # Durable Objects (if needed for advanced caching)
-# [[durable_objects.bindings]]
-# name = "CACHE_DO"
-# class_name = "CacheDurableObject"
+[[durable_objects.bindings]]
+name = "CACHE_DO"
+class_name = "CacheDurableObject"
 
-# Rate limiting (optional)
+# Durable Object migrations
+[[migrations]]
+tag = "v1"
+new_classes = ["CacheDurableObject"]
+
+# Rate limiting (optional) - commented out due to configuration issues
 # [rate_limiting]
 # burst = 10
 # period = 60
 
 # Custom domains (uncomment and configure if needed)
-# [[routes]]
-# pattern = "your-domain.com/*"
-# zone_id = "your_zone_id"
+[[routes]]
+pattern = "jack-portal.yourdomain.com/*"
+zone_id = "your_zone_id"
 
 # Development configuration
 [dev]

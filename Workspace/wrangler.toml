@@ -1,0 +1,59 @@
+name = "jack-portal"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Environment variables for API keys and configuration
+# Add your API keys here or use wrangler secret put <name>
+GOOGLE_API_KEY = ""
+GOOGLE_CSE_ID = ""
+BRAVE_API_KEY = ""
+YANDEX_API_KEY = ""
+ADULTMEDIA_API_KEY = ""
+USER_AGENT = "Jack-Portal/2.0.0"
+TIMEOUT = "10000"
+DEFAULT_LIMIT = "10"
+MAX_LIMIT = "20"
+MIN_LIMIT = "3"
+CACHE_TTL = "3600"
+FOLLOW_LINKS = "false"
+INCLUDE_REDDIT = "false"
+FETCH_TIMEOUT_MS = "10000"
+
+# Build configuration
+[build]
+command = "npm run build"
+
+# Environment-specific overrides
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+
+# KV namespace for caching (optional)
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "your_kv_namespace_id"
+
+# Durable Objects (if needed for advanced caching)
+# [[durable_objects.bindings]]
+# name = "CACHE_DO"
+# class_name = "CacheDurableObject"
+
+# Rate limiting (optional)
+# [rate_limiting]
+# burst = 10
+# period = 60
+
+# Custom domains (uncomment and configure if needed)
+# [[routes]]
+# pattern = "your-domain.com/*"
+# zone_id = "your_zone_id"
+
+# Development configuration
+[dev]
+port = 8787
+local_protocol = "http"
+upstream_protocol = "https"

@@ -1,0 +1,39 @@
+{
+  "name": "jack-portal",
+  "version": "2.0.0",
+  "description": "A modular, production-ready Cloudflare Worker for advanced content search across multiple providers",
+  "main": "src/worker.js",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "build": "wrangler build",
+    "deploy": "wrangler deploy",
+    "lint": "npx eslint . --ext .js",
+    "format": "npx prettier --write .",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "cloudflare-worker",
+    "search",
+    "api",
+    "serverless"
+  ],
+  "author": "Jack Portal Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "wrangler": "^3.22.4"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itstanner5216/workspace.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itstanner5216/workspace/issues"
+  },
+  "homepage": "https://github.com/itstanner5216/workspace#readme"
+}

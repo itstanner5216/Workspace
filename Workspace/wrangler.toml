@@ -22,8 +22,8 @@ INCLUDE_REDDIT = "false"
 FETCH_TIMEOUT_MS = "10000"
 
 # Build configuration
-[build]
-command = "npm run build"
+# [build]
+# command = "npm run build"
 
 # Environment-specific overrides
 [env.production]
@@ -32,21 +32,21 @@ vars = { ENVIRONMENT = "production" }
 [env.staging]
 vars = { ENVIRONMENT = "staging" }
 
-# KV namespace for caching (optional)
+# KV namespace for caching
 [[kv_namespaces]]
 binding = "CACHE"
 id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
 preview_id = "02133c1d0165429f8bd8960915d0994e"
 
-# Durable Objects (if needed for advanced caching)
-[[durable_objects.bindings]]
-name = "CACHE_DO"
-class_name = "CacheDurableObject"
+# Durable Objects (commented out - using KV for caching instead)
+# [[durable_objects.bindings]]
+# name = "CACHE_DO"
+# class_name = "CacheDurableObject"
 
-# Durable Object migrations
-[[migrations]]
-tag = "v1"
-new_classes = ["CacheDurableObject"]
+# Durable Object migrations (commented out)
+# [[migrations]]
+# tag = "v1"
+# new_classes = ["CacheDurableObject"]
 
 # Rate limiting (optional) - commented out due to configuration issues
 # [rate_limiting]

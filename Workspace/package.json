@@ -2,12 +2,13 @@
   "name": "jack-portal",
   "version": "2.0.0",
   "description": "A modular, production-ready Cloudflare Worker for advanced content search across multiple providers",
+  "type": "module",
   "main": "src/worker.js",
   "scripts": {
     "dev": "wrangler dev --local",
-    "build": "wrangler build",
+    "build": "echo 'Build not needed - wrangler handles this automatically'",
     "deploy": "wrangler deploy",
-    "lint": "npx eslint . --ext .js",
+    "lint": "npx eslint .",
     "format": "npx prettier --write .",
     "test": "echo \"No tests specified\" && exit 0"
   },

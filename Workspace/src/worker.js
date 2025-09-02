@@ -1,17 +1,156 @@
+/**
+ * Jack Portal - Cloudflare Worker
+ * Multi-provider search API with intelligent caching
+ *
+ * @version 2.0.0
+ * @author Jack Portal Team
+ * @license MIT
+ */
+
 import { PORTAL_HTML } from './html.js'
 import { handleAggregate } from './handlers/aggregate.js'
+import { handleOptionsRequest, createErrorResponse } from './lib/response.js'
+import {
+  logInfo,
+  logError,
+  logRequestStart,
+  logRequestEnd,
+  createRequestContext,
+  setLogLevel
+} from './lib/logger.js'
 
+/**
+ * Main Cloudflare Worker export
+ * Handles all incoming requests and routes them appropriately
+ */
 export default {
+  /**
+   * Fetch handler for all incoming requests
+   * @param {Request} request - The incoming HTTP request
+   * @param {Object} env - Environment variables and bindings
+   * @param {Object} ctx - Execution context
+   * @returns {Promise<Response>} The HTTP response
+   */
   async fetch(request, env, ctx) {
+    const startTime = Date.now()
+    const requestId = crypto.randomUUID()
     const url = new URL(request.url)
+    const method = request.method
+    const ip = request.headers.get('CF-Connecting-IP') ||
+               request.headers.get('X-Forwarded-For') ||
+               request.headers.get('X-Real-IP') ||
+               'unknown'
 
-    if (url.pathname === '/api/search') {
-      return handleAggregate(request, env)
-    }
-
-    // serve static
-    return new Response(PORTAL_HTML, {
-      headers: { 'Content-Type': 'text/html' }
+    // Log incoming request
+    logRequestStart({
+      requestId,
+      method,
+      path: url.pathname,
+      ip,
+      userAgent: request.headers.get('User-Agent')?.substring(0, 100)
     })
+
+    try {
+      // Handle CORS preflight requests
+      if (method === 'OPTIONS') {
+        const response = handleOptionsRequest(request)
+        logRequestEnd({
+          requestId,
+          method,
+          path: url.pathname,
+          ip
+        }, Date.now() - startTime, response.status)
+        return response
+      }
+
+      // Route to appropriate handler
+      if (url.pathname === '/api/search') {
+        const response = await handleAggregate(request, env)
+
+        // Add request tracking headers
+        const newResponse = new Response(response.body, response)
+        newResponse.headers.set('X-Request-ID', requestId)
+        newResponse.headers.set('X-Response-Time', `${Date.now() - startTime}ms`)
+        newResponse.headers.set('X-Powered-By', 'Jack-Portal/2.0.0')
+
+        logRequestEnd({
+          requestId,
+          method,
+          path: url.pathname,
+          ip
+        }, Date.now() - startTime, newResponse.status)
+        return newResponse
+      }
+
+      // Handle health check endpoint
+      if (url.pathname === '/health') {
+        const response = new Response(JSON.stringify({
+          status: 'healthy',
+          timestamp: new Date().toISOString(),
+          version: '2.0.0',
+          uptime: Date.now() - startTime
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Request-ID': requestId,
+            'Cache-Control': 'no-cache'
+          }
+        })
+
+        logRequestEnd({
+          requestId,
+          method,
+          path: url.pathname,
+          ip
+        }, Date.now() - startTime, response.status)
+        return response
+      }
+
+      // Serve static HTML for all other routes
+      const htmlResponse = new Response(PORTAL_HTML, {
+        headers: {
+          'Content-Type': 'text/html',
+          'X-Request-ID': requestId,
+          'X-Response-Time': `${Date.now() - startTime}ms`,
+          'Cache-Control': 'public, max-age=300' // Cache HTML for 5 minutes
+        }
+      })
+
+      logRequestEnd({
+        requestId,
+        method,
+        path: url.pathname,
+        ip
+      }, Date.now() - startTime, htmlResponse.status)
+      return htmlResponse
+
+    } catch (error) {
+      logError('Worker error', {
+        requestId,
+        method,
+        path: url.pathname,
+        ip,
+        error: error.message,
+        stack: error.stack,
+        responseTime: Date.now() - startTime
+      })
+
+      const errorResponse = createErrorResponse(
+        'Internal server error',
+        500,
+        {
+          requestId,
+          type: 'WorkerError'
+        }
+      )
+
+      logRequestEnd({
+        requestId,
+        method,
+        path: url.pathname,
+        ip
+      }, Date.now() - startTime, errorResponse.status)
+      return errorResponse
+    }
   }
 }

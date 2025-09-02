@@ -1,59 +1,90 @@
-import { SearchService } from '../lib/search-service.js'
+/**
+ * Aggregate Search Handler
+ * Handles search requests across multiple providers with caching
+ *
+ * @module handlers/aggregate
+ */
 
+import { SearchService } from '../lib/search-service.js'
+import { validateAllInputs } from '../lib/validation.js'
+import { createCORSResponse, createErrorResponse, createSuccessResponse } from '../lib/response.js'
+import { checkRateLimit, createRateLimitResponse } from '../lib/rate-limit.js'
+
+/**
+ * Handles aggregate search requests
+ * @param {Request} request - The incoming HTTP request
+ * @param {Object} env - Environment variables and Cloudflare bindings
+ * @returns {Promise<Response>} The search results response
+ */
 export async function handleAggregate(request, env) {
   const url = new URL(request.url)
+  const ip = request.headers.get('CF-Connecting-IP') ||
+             request.headers.get('X-Forwarded-For') ||
+             request.headers.get('X-Real-IP') ||
+             'unknown'
 
-  const q = url.searchParams.get('q')
-  const mode = url.searchParams.get('mode') || 'niche'
-  const fresh = url.searchParams.get('fresh') || 'd7'
-  const limit = parseInt(url.searchParams.get('limit')) || 10
-  const duration = url.searchParams.get('duration')
-  const site = url.searchParams.get('site')
-  const hostMode = url.searchParams.get('hostMode') || 'normal'
-  const durationMode = url.searchParams.get('durationMode') || 'normal'
-  const showThumbs = url.searchParams.get('showThumbs') !== 'false'
-  const provider = url.searchParams.get('provider')
-  const safeMode = url.searchParams.get('safeMode') !== 'false'
-  const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown'
-
-  // Validate input
-  if (!q || q.trim().length === 0) {
-    return new Response(JSON.stringify({
-      error: 'Missing or empty query parameter',
-      status: 400
-    }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' }
-    })
+  // Check rate limits
+  const rateLimitResult = await checkRateLimit(env, ip, 'aggregate')
+  if (!rateLimitResult.allowed) {
+    console.warn('Rate limit exceeded for IP:', ip)
+    return createRateLimitResponse(rateLimitResult)
   }
 
-  // Create cache key
-  const cacheKey = `search:${q.trim()}:${mode}:${fresh}:${limit}:${provider || 'all'}:${Date.now()}`
+  // Comprehensive input validation
+  const validation = validateAllInputs(url.searchParams, env)
+
+  if (!validation.isValid) {
+    console.warn('Input validation failed:', validation.errors)
+    return createErrorResponse(
+      'Invalid input parameters',
+      400,
+      {
+        details: validation.errors,
+        type: 'ValidationError'
+      }
+    )
+  }
+
+  const {
+    query,
+    mode,
+    fresh,
+    limit,
+    duration,
+    site,
+    hostMode,
+    durationMode,
+    showThumbs,
+    provider,
+    safeMode
+  } = validation.data
+
+  // Create cache key with validated parameters
+  const cacheKey = `search:${query}:${mode}:${fresh}:${limit}:${provider || 'all'}:${Date.now()}`
 
   // Try to get from cache first
   try {
     const cachedResult = await env.CACHE.get(cacheKey)
     if (cachedResult) {
-      console.log('Cache hit for query:', q)
-      return new Response(cachedResult, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Cache-Status': 'HIT'
-        }
+      console.log('Cache hit for query:', query, 'from IP:', ip)
+      const cachedData = JSON.parse(cachedResult)
+      return createSuccessResponse(cachedData, {
+        cacheStatus: 'HIT',
+        validationStatus: 'PASSED'
       })
     }
   } catch (cacheError) {
-    console.warn('Cache read error:', cacheError)
+    console.warn('Cache read error for query:', query, 'Error:', cacheError.message)
   }
 
-  console.log('Cache miss for query:', q)
+  console.log('Cache miss for query:', query, 'from IP:', ip)
 
   try {
     const searchService = new SearchService(env)
 
     // Perform the search
     const results = await searchService.search({
-      query: q.trim(),
+      query,
       mode,
       fresh,
       limit,
@@ -69,10 +100,11 @@ export async function handleAggregate(request, env) {
 
     const response = {
       results,
-      query: q.trim(),
+      query,
       mode,
       timestamp: Date.now(),
-      cached: false
+      cached: false,
+      requestId: crypto.randomUUID()
     }
 
     // Cache the result for 30 minutes (1800 seconds)
@@ -80,28 +112,37 @@ export async function handleAggregate(request, env) {
       await env.CACHE.put(cacheKey, JSON.stringify(response), {
         expirationTtl: 1800 // 30 minutes
       })
-      console.log('Cached result for query:', q)
+      console.log('Cached result for query:', query, 'TTL: 1800s')
     } catch (cacheWriteError) {
-      console.warn('Cache write error:', cacheWriteError)
+      console.warn('Cache write error for query:', query, 'Error:', cacheWriteError.message)
     }
 
-    return new Response(JSON.stringify(response), {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Cache-Status': 'MISS'
-      }
+    return createSuccessResponse(response, {
+      cacheStatus: 'MISS',
+      validationStatus: 'PASSED'
     })
 
   } catch (error) {
-    console.error('Search error:', error)
-
-    return new Response(JSON.stringify({
-      error: 'Search failed',
-      message: error.message,
-      status: 500
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
+    const requestId = crypto.randomUUID()
+    console.error('Search error:', {
+      requestId,
+      query,
+      ip,
+      mode,
+      provider,
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
     })
+
+    return createErrorResponse(
+      'Search failed',
+      500,
+      {
+        message: error.message,
+        type: error.name || 'SearchError',
+        requestId
+      }
+    )
   }
 }

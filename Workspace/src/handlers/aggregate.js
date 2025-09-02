@@ -59,8 +59,8 @@ export async function handleAggregate(request, env) {
     safeMode
   } = validation.data
 
-  // Create cache key with validated parameters
-  const cacheKey = `search:${query}:${mode}:${fresh}:${limit}:${provider || 'all'}:${Date.now()}`
+  // Create cache key with validated parameters (without timestamp to enable proper caching)
+  const cacheKey = `search:${query}:${mode}:${fresh}:${limit}:${provider || 'all'}`
 
   // Try to get from cache first
   try {

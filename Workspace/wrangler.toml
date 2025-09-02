@@ -54,9 +54,9 @@ preview_id = "02133c1d0165429f8bd8960915d0994e"
 # period = 60
 
 # Custom domains (uncomment and configure if needed)
-[[routes]]
-pattern = "jack-portal.yourdomain.com/*"
-zone_id = "your_zone_id"
+# [[routes]]
+# pattern = "jack-portal.yourdomain.com/*"
+# zone_id = "your_zone_id"
 
 # Development configuration
 [dev]

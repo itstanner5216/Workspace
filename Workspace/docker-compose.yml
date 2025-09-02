@@ -12,7 +12,7 @@ services:
       - /app/node_modules
     command: npm run dev
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8787"]
+      test: ["CMD", "curl", "-f", "http://localhost:8787/health"]
       interval: 30s
       timeout: 10s
       retries: 3

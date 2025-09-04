@@ -1,7 +1,7 @@
 export class QualityPornProvider {
   constructor() {
     this.name = 'QualityPorn'
-    this.baseUrl = 'https://quality-porn.p.rapidapi.com/search'
+    this.baseUrl = 'https://quality-porn.p.rapidapi.com/docs'
     this.version = '1.0.0'
     this.dailyCap = 300
     this.monthlyCap = 9000
@@ -18,7 +18,7 @@ export class QualityPornProvider {
     }
 
     const ledger = options.ledger
-    if (ledger && ledger.recordSuccess) {
+    if (ledger) {
       const state = ledger.getProviderState('qualityporn')
       if (state.dailyUsed >= this.dailyCap) {
         ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
@@ -28,17 +28,13 @@ export class QualityPornProvider {
 
     try {
       const params = new URLSearchParams({
-        query: query,
-        page: 1  // Start with page 1
+        q: query,
+        limit: Math.min(options.limit || 10, this.batchSize)
       })
 
-      // Optional params allowed: page, sort, quality, duration, tags, category
-      if (options.limit) {
-        // QualityPorn might use different param for limit
-      }
-
       if (options.fresh && options.fresh !== 'all') {
-        // Could add freshness if supported
+        const days = options.fresh.replace('d', '')
+        params.append('freshness', `d${days}`)
       }
 
       const response = await fetch(`${this.baseUrl}?${params}`, {
@@ -53,7 +49,7 @@ export class QualityPornProvider {
 
       if (!response.ok) {
         if (response.status === 429) {
-          if (ledger && ledger.markQuotaExceeded) ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
+          if (ledger) ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
           throw new Error('QUOTA_EXCEEDED')
         }
         throw new Error(`QualityPorn error: ${response.status}`)
@@ -61,15 +57,15 @@ export class QualityPornProvider {
 
       const data = await response.json()
 
-      if (ledger && ledger.recordSuccess) {
+      if (ledger) {
         ledger.recordSuccess('qualityporn')
         ledger.incrementDailyUsed('qualityporn')
       }
 
-      return this.normalizeResults(data, options)
+      return this.normalizeResults(data.results || [], options)
 
     } catch (error) {
-      if (ledger && ledger.recordError) {
+      if (ledger) {
         if (error.message.includes('QUOTA')) {
           ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
         } else {
@@ -80,33 +76,21 @@ export class QualityPornProvider {
     }
   }
 
-  normalizeResults(data, options) {
-    // If Array.isArray(data) and data.length>0, return title and URL using the first item
-    if (Array.isArray(data) && data.length > 0) {
-      const first = data[0]
-      return [{
-        title: first.title || first.name || first.videoTitle || 'No title',
-        url: first.url || first.link || first.videoUrl || first.pageUrl || '#',
-        snippet: first.description || '',
-        published_at: first.published_at || null,
-        author: first.author || null,
-        thumbnail: first.thumbnail || null,
-        score: 0.6,
-        path_used: 'qualityporn:search',
-        extra: {
-          provider: 'qualityporn',
-          category: first.category,
-          tags: first.tags || []
-        }
-      }]
-    }
-
-    // If empty, return status="empty" and count=0
-    return [{
-      status: 'empty',
-      count: 0,
-      path_used: 'qualityporn:search'
-    }]
+  normalizeResults(results, options) {
+    return results.map(item => ({
+      title: item.title || 'No title',
+      url: item.url || '#',
+      snippet: item.description || '',
+      published_at: item.published_at || null,
+      author: item.author || null,
+      thumbnail: item.thumbnail || null,
+      score: 0.6,
+      extra: {
+        provider: 'qualityporn',
+        category: item.category,
+        tags: item.tags || []
+      }
+    }))
   }
 
   getNextDailyReset() {

@@ -10,7 +10,6 @@
 import { PORTAL_HTML } from './html.js'
 import { handleAggregate } from './handlers/aggregate.js'
 import { handleDiagnostics } from './handlers/diagnostics.js'
-import { handleHealth } from './handlers/health.js'
 import { handleOptionsRequest, createErrorResponse } from './lib/response.js'
 import {
   logInfo,
@@ -87,18 +86,6 @@ export default {
       // Handle diagnostics endpoint for DEBUG mode
       if (url.pathname === '/api/diagnostics' && url.searchParams.get('debug') === 'true') {
         const response = await handleDiagnostics(request, env)
-        logRequestEnd({
-          requestId,
-          method,
-          path: url.pathname,
-          ip
-        }, Date.now() - startTime, response.status)
-        return response
-      }
-
-      // Handle health check endpoint
-      if (url.pathname === '/health') {
-        const response = await handleHealth(request, env)
         logRequestEnd({
           requestId,
           method,

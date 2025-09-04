@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "jack-portal" generated at 2025-09-02T04:45:40.437Z.

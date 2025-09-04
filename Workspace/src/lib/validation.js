@@ -53,7 +53,7 @@ export function validateMode(mode) {
   const allowedModes = ['normal', 'deep_niche']
   const sanitized = sanitizeString(mode || 'normal')
 
-  // Handle legacy 'niche' mode by treating it as 'normal'
+  // Handle legacy 'niche' mode by converting to 'normal'
   if (sanitized === 'niche') {
     return { isValid: true, value: 'normal' }
   }

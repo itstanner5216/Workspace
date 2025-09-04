@@ -24,7 +24,7 @@ Perform a search across multiple providers with intelligent caching.
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `q` | string | Yes | - | Search query (2-200 characters) |
-| `mode` | string | No | `niche` | Search mode: `niche`, `broad`, `exact` |
+| `mode` | string | No | `normal` | Search mode: `normal`, `deep_niche` |
 | `fresh` | string | No | `d7` | Time filter: `d1`, `d7`, `d30`, `d365`, `all` |
 | `limit` | number | No | `10` | Results per provider (3-20) |
 | `provider` | string | No | `all` | Specific provider: `google`, `brave`, `yandex`, `adultmedia` |
@@ -35,7 +35,7 @@ Perform a search across multiple providers with intelligent caching.
 #### Example Request
 
 ```bash
-curl "https://your-worker.workers.dev/api/search?q=cloudflare&mode=niche&limit=5"
+curl "https://your-worker.workers.dev/api/search?q=cloudflare&mode=normal&limit=5"
 ```
 
 #### Example Response
@@ -55,7 +55,7 @@ curl "https://your-worker.workers.dev/api/search?q=cloudflare&mode=niche&limit=5
     }
   ],
   "query": "cloudflare",
-  "mode": "niche",
+  "mode": "normal",
   "timestamp": 1756786886806,
   "cached": false,
   "requestId": "550e8400-e29b-41d4-a716-446655440000",

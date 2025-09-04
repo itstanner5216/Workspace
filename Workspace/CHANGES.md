@@ -7,7 +7,7 @@
 #### Weighted Result Allocation & Smart Fallbacks
 - **New Search Modes**: `normal`, `deep_niche` with intelligent provider allocation
 - **Weighted Distribution**:
-  - Normal: Google 50% (Serper fallback), Brave 15% (Yandex fallback), RapidMedia 15%, Scrapers 10%, Adapters 10%
+  - Normal/Niche: Google 50% (Serper fallback), Brave 15% (Yandex fallback), RapidMedia 15%, Scrapers 10%, Adapters 10%
   - Deep Niche: RapidMedia 30%, Yandex 30%, Scrapers 20%, Adapters 20%
 - **Rotating Fallbacks**: Priority-weighted round-robin prevents provider overload
 - **Global Backfill**: Ensures result limits are met across all healthy providers
@@ -48,7 +48,7 @@
 ### 📊 API Changes
 
 #### New Parameters
-- `mode`: `normal` (default), `deep_niche`
+- `mode`: `normal` (default), `niche`, `deep_niche`, `raw`
 - `debug`: Enable diagnostic output (default: false)
 
 #### Response Format
@@ -127,6 +127,7 @@ wrangler dev --local --var-file=.dev.vars
 - Normal mode allocation with healthy providers
 - Fallback activation on quota exceeded
 - Deep niche mode with limited Google usage
+- Raw mode parallel execution
 - Circuit breaker auto-recovery
 - Global backfill functionality
 

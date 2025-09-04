@@ -17,7 +17,7 @@ export class ApifyProvider {
     }
 
     const ledger = options.ledger
-    if (ledger && ledger.recordSuccess) {
+    if (ledger) {
       const state = ledger.getProviderState('apify')
       if (state.monthlyUsed >= this.monthlyCap) {
         ledger.markQuotaExceeded('apify')
@@ -40,7 +40,7 @@ export class ApifyProvider {
         runParams.dateRange = `d${days}`
       }
 
-      // Always use the Google Search Actor sync endpoint
+      // Use synchronous endpoint
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
@@ -54,7 +54,7 @@ export class ApifyProvider {
 
       if (!response.ok) {
         if (response.status === 429) {
-          if (ledger && ledger.markQuotaExceeded) ledger.markQuotaExceeded('apify')
+          if (ledger) ledger.markQuotaExceeded('apify')
           throw new Error('QUOTA_EXCEEDED')
         }
         throw new Error(`Apify error: ${response.status}`)
@@ -62,7 +62,7 @@ export class ApifyProvider {
 
       const results = await response.json()
 
-      if (ledger && ledger.recordSuccess) {
+      if (ledger) {
         ledger.recordSuccess('apify')
         ledger.incrementMonthlyUsed('apify')
       }
@@ -70,7 +70,7 @@ export class ApifyProvider {
       return this.normalizeResults(results, options)
 
     } catch (error) {
-      if (ledger && ledger.recordError) {
+      if (ledger) {
         if (error.message.includes('QUOTA')) {
           ledger.markQuotaExceeded('apify')
         } else {
@@ -90,7 +90,6 @@ export class ApifyProvider {
       author: item.displayedLink || null,
       thumbnail: item.thumbnail || null,
       score: 0.5,
-      path_used: 'apify:actor-sync',
       extra: {
         provider: 'apify',
         position: item.position,

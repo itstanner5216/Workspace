@@ -14,7 +14,7 @@
 ### 2. Local Testing
 - [ ] Run: `npm run dev`
 - [ ] Open: http://localhost:8787
-- [ ] Test search with: `?q=test&mode=niche`
+- [ ] Test search with: `?q=test&mode=normal`
 - [ ] Verify KV caching works (check console logs)
 
 ### 3. Deployment

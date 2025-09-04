@@ -18,7 +18,7 @@ export class AdultMediaProvider {
     }
 
     const ledger = options.ledger
-    if (ledger && ledger.recordSuccess) {
+    if (ledger) {
       const state = ledger.getProviderState('adultmedia')
       if (state.requestsDailyUsed >= this.requestsDailyCap) {
         ledger.markQuotaExceeded('adultmedia', this.getNextDailyReset())
@@ -51,13 +51,13 @@ export class AdultMediaProvider {
 
       if (!response.ok) {
         if (response.status === 429) {
-          if (ledger && ledger.markQuotaExceeded) ledger.markQuotaExceeded('adultmedia', this.getNextDailyReset())
+          if (ledger) ledger.markQuotaExceeded('adultmedia', this.getNextDailyReset())
           throw new Error('QUOTA_EXCEEDED')
         }
         throw new Error(`AdultMedia API error: ${response.status}`)
       }
 
-      if (ledger && ledger.recordSuccess) {
+      if (ledger) {
         ledger.recordSuccess('adultmedia')
         ledger.incrementRequestsDailyUsed('adultmedia')
         // Increment objects based on actual results returned
@@ -65,10 +65,23 @@ export class AdultMediaProvider {
         ledger.incrementObjectsDailyUsed('adultmedia', objectsReturned)
       }
 
-      return this.normalizeResults(data, options)
+      return (data.results || []).map(item => ({
+        title: item.title || 'No title',
+        url: item.url || '#',
+        snippet: item.description || '',
+        score: item.score || 0,
+        thumbnail: item.thumbnail || null,
+        published_at: item.published_at || null,
+        author: item.author || null,
+        extra: {
+          provider: 'adultmedia',
+          category: item.category,
+          tags: item.tags
+        }
+      }))
 
     } catch (error) {
-      if (ledger && ledger.recordError) {
+      if (ledger) {
         if (error.message.includes('QUOTA')) {
           ledger.markQuotaExceeded('adultmedia', this.getNextDailyReset())
         } else {
@@ -77,32 +90,6 @@ export class AdultMediaProvider {
       }
       throw error
     }
-  }
-
-  normalizeResults(data, options) {
-    const results = data.results || []
-    if (results.length === 0) {
-      return []
-    }
-
-    // Return the first media URL
-    const first = results[0]
-    return [{
-      title: first.title || 'No title',
-      url: first.url || '#',
-      media_url: first.url || first.thumbnail || null,
-      snippet: first.description || '',
-      score: first.score || 0,
-      thumbnail: first.thumbnail || null,
-      published_at: first.published_at || null,
-      author: first.author || null,
-      path_used: 'adultmedia:pornpics-search',
-      extra: {
-        provider: 'adultmedia',
-        category: first.category,
-        tags: first.tags
-      }
-    }]
   }
 
   getNextDailyReset() {

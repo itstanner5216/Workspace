@@ -1,31 +1,30 @@
+import { GoogleProvider } from './src/lib/sources/google.js';
+import { SerpApiProvider } from './src/lib/sources/serpapi.js';
+import { SerperProvider } from './src/lib/sources/serper.js';
+import { YandexProvider } from './src/lib/sources/yandex.js';
+import { BraveProvider } from './src/lib/sources/brave.js';
 import { SerpHouseProvider } from './src/lib/sources/serphouse.js';
-import { QualityPornProvider } from './src/lib/sources/qualityporn.js';
 import { AdultMediaProvider } from './src/lib/sources/adultmedia.js';
-import { SeznamProvider } from './src/lib/sources/seznam.js';
+import { QualityPornProvider } from './src/lib/sources/qualityporn.js';
 import { ApifyProvider } from './src/lib/sources/apify.js';
+import { SeznamProvider } from './src/lib/sources/seznam.js';
 
-// Load environment variables
-import { readFileSync } from 'fs';
-const envContent = readFileSync('.dev.vars', 'utf8');
-const env = {};
-envContent.split('\n').forEach(line => {
-  if (line.includes('=')) {
-    const [key, ...valueParts] = line.split('=');
-    const value = valueParts.join('=').trim();
-    if (key && value) {
-      env[key.trim()] = value;
-    }
-  }
-});
+// Mock environment with API keys
+const mockEnv = {
+  GOOGLE_API_KEY: 'AIzaSyAZhWamw25pgVB_3NAhvQOuSbkeh-mEWu0',
+  GOOGLE_CSE_ID: '73e4998767b3c4800',
+  SERPAPI_KEY: 'fe5d56f86af256dacb81a171d20a3cca9db8d141e828bda7895ba23243c5b7c5',
+  SERPER_KEY: '8b0733a1da1ace1e16a34f5a396b48e4daa4d88e',
+  SERPWOW_API_KEY: '9496B06AECF34708BD1870A1313C1A52',
+  BRAVE_API_KEY: 'BSAUZcHnbsKgi9GTsu4wQV2SPEeZ3wy',
+  SERPHOUSE_KEY: 'SPDd5bq5r5VagaI7ktMSMTsi3ZGmdugm8luvKTenF9LEISbEkrwxFoJ04eUC',
+  RAPIDAPI_KEY: 'e170483005mshc804d33de8643bbp18f5f3jsn88ca17314529',
+  APIFY_TOKEN: 'apify_api_20hwygocmkoLWMmO95uhtn2Jfblm1m0oKdVd'
+};
 
 // Mock ledger
 const mockLedger = {
-  getProviderState: () => ({
-    dailyUsed: 0,
-    monthlyUsed: 0,
-    requestsDailyUsed: 0,
-    objectsDailyUsed: 0
-  }),
+  getProviderState: () => ({ dailyUsed: 0, monthlyUsed: 0, requestsDailyUsed: 0, objectsDailyUsed: 0 }),
   recordSuccess: () => {},
   incrementDailyUsed: () => {},
   incrementMonthlyUsed: () => {},
@@ -35,203 +34,49 @@ const mockLedger = {
   markQuotaExceeded: () => {}
 };
 
-async function testProvider(provider, query, primaryMethod, fallbackMethod = null) {
-  const options = { limit: 5, ledger: mockLedger };
+const providers = [
+  { name: 'Google', instance: new GoogleProvider() },
+  { name: 'SerpApi', instance: new SerpApiProvider() },
+  { name: 'Serper', instance: new SerperProvider() },
+  { name: 'Yandex/SERPWOW', instance: new YandexProvider() },
+  { name: 'Brave', instance: new BraveProvider() },
+  { name: 'SerpHouse', instance: new SerpHouseProvider() },
+  { name: 'AdultMedia', instance: new AdultMediaProvider() },
+  { name: 'QualityPorn', instance: new QualityPornProvider() },
+  { name: 'Apify', instance: new ApifyProvider() },
+  { name: 'Seznam', instance: new SeznamProvider() }
+];
 
+async function testProvider(provider) {
   try {
-    // Try primary method
-    let results;
-    if (primaryMethod) {
-      results = await primaryMethod(provider, query, options, env);
-    } else {
-      results = await provider.search(query, options, env);
-    }
+    const options = {
+      limit: 5,
+      ledger: mockLedger
+    };
+
+    const results = await provider.instance.search('hello world', options, mockEnv);
 
     if (results && results.length > 0) {
-      const first = results[0];
-      if (provider.name === 'AdultMedia') {
-        return `✅ Media URL ${first.url || first.thumbnail || 'N/A'}`;
-      } else {
-        return `✅ Title "${first.title || 'No title'}" (URL ${first.url || '#'})`;
-      }
+      return `✅ ${provider.name}: ${results.length} results`;
     } else {
-      return '❌ No results returned';
+      return `❌ ${provider.name}: No results returned`;
     }
   } catch (error) {
-    // Try fallback if available
-    if (fallbackMethod) {
-      try {
-        const results = await fallbackMethod(provider, query, options, env);
-        if (results && results.length > 0) {
-          const first = results[0];
-          if (provider.name === 'AdultMedia') {
-            return `✅ Media URL ${first.url || first.thumbnail || 'N/A'}`;
-          } else {
-            return `✅ Title "${first.title || 'No title'}" (URL ${first.url || '#'})`;
-          }
-        } else {
-          return '❌ No results returned';
-        }
-      } catch (fallbackError) {
-        return `❌ Error ${fallbackError.message}`;
-      }
-    }
-    return `❌ Error ${error.message}`;
+    return `❌ ${provider.name}: ${error.message}`;
   }
-}
-
-async function serpHousePrimary(provider, query, options, env) {
-  const apiKey = env.SERPHOUSE_KEY;
-  const response = await fetch('https://api.serphouse.com/serp/live', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ "q": query, "responseType": "json" }),
-    cf: { timeout: 15000 }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const data = await response.json();
-  return provider.normalizeResults(data.results || data || [], options);
-}
-
-async function serpHouseFallback(provider, query, options, env) {
-  const apiKey = env.SERPHOUSE_KEY;
-  const response = await fetch(`https://api.serphouse.com/serp/live?q=${encodeURIComponent(query)}&responseType=json&api_token=${apiKey}`, {
-    method: 'GET',
-    headers: {
-      'User-Agent': 'Jack-Portal/2.0.0'
-    },
-    cf: { timeout: 15000 }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const data = await response.json();
-  return provider.normalizeResults(data.results || data || [], options);
-}
-
-async function qualityPornPrimary(provider, query, options, env) {
-  const apiKey = env.RAPIDAPI_KEY;
-  const response = await fetch(`https://quality-porn.p.rapidapi.com/search?q=${encodeURIComponent(query)}`, {
-    method: 'GET',
-    headers: {
-      'x-rapidapi-host': 'quality-porn.p.rapidapi.com',
-      'x-rapidapi-key': apiKey
-    },
-    cf: { timeout: 10000 }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const data = await response.json();
-  return provider.normalizeResults(data.results || [], options);
-}
-
-async function adultMediaPrimary(provider, query, options, env) {
-  const apiKey = env.RAPIDAPI_KEY;
-  const response = await fetch(`https://porn-api-adultdatalink.p.rapidapi.com/pornpics/search?q=${encodeURIComponent(query)}`, {
-    method: 'GET',
-    headers: {
-      'x-rapidapi-host': 'porn-api-adultdatalink.p.rapidapi.com',
-      'x-rapidapi-key': apiKey
-    },
-    cf: { timeout: 15000 }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const data = await response.json();
-  return (data.results || []).map(item => ({
-    title: item.title || 'No title',
-    url: item.url || '#',
-    snippet: item.description || '',
-    score: item.score || 0,
-    thumbnail: item.thumbnail || null,
-    published_at: item.published_at || null,
-    author: item.author || null,
-    extra: {
-      provider: 'adultmedia',
-      category: item.category,
-      tags: item.tags
-    }
-  }));
-}
-
-async function seznamPrimary(provider, query, options, env) {
-  const apiKey = env.RAPIDAPI_KEY;
-  const response = await fetch(`https://search-seznam.p.rapidapi.com/?q=${encodeURIComponent(query)}`, {
-    method: 'GET',
-    headers: {
-      'x-rapidapi-host': 'search-seznam.p.rapidapi.com',
-      'x-rapidapi-key': apiKey
-    },
-    cf: { timeout: 10000 }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const data = await response.json();
-  return provider.normalizeResults(data.results || [], options);
-}
-
-async function apifyPrimary(provider, query, options, env) {
-  const apiKey = env.APIFY_TOKEN;
-  const response = await fetch('https://api.apify.com/v2/acts/apify~google-search-scraper/run-sync-get-dataset-items', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ "queries": [query], "maxPagesPerQuery": 1 }),
-    cf: { timeout: 30000 }
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const results = await response.json();
-  return provider.normalizeResults(results, options);
 }
 
 async function runHealthCheck() {
-  const query = 'hello world';
+  console.log('🔍 Running health check for all providers with query: "hello world"\n');
 
-  console.log('Running health check with query: "hello world"\n');
+  for (const provider of providers) {
+    const result = await testProvider(provider);
+    console.log(result);
+    // Small delay between requests to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
 
-  // SerpHouse
-  const serpHouse = new SerpHouseProvider();
-  console.log(`SerpHouse: ${await testProvider(serpHouse, query, serpHousePrimary, serpHouseFallback)}`);
-
-  // QualityPorn
-  const qualityPorn = new QualityPornProvider();
-  console.log(`QualityPorn: ${await testProvider(qualityPorn, query, qualityPornPrimary)}`);
-
-  // AdultMedia
-  const adultMedia = new AdultMediaProvider();
-  console.log(`AdultMedia: ${await testProvider(adultMedia, query, adultMediaPrimary)}`);
-
-  // Seznam
-  const seznam = new SeznamProvider();
-  console.log(`Seznam: ${await testProvider(seznam, query, seznamPrimary)}`);
-
-  // Apify
-  const apify = new ApifyProvider();
-  console.log(`Apify: ${await testProvider(apify, query, apifyPrimary)}`);
+  console.log('\n🏁 Health check complete');
 }
 
 runHealthCheck().catch(console.error);

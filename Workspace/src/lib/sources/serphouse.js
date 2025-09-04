@@ -1,7 +1,12 @@
+/**
+ * SerpHouse Provider
+ * SERP API via SerpHouse
+ */
+
 export class SerpHouseProvider {
   constructor() {
     this.name = 'SerpHouse'
-    this.baseUrl = 'https://api.serphouse.com/serp/live'
+    this.baseUrl = 'https://api.serphouse.com/serp'
     this.version = '1.0.0'
     this.dailyCap = 13
     this.monthlyCap = 400
@@ -18,7 +23,7 @@ export class SerpHouseProvider {
     }
 
     const ledger = options.ledger
-    if (ledger && ledger.recordSuccess) {
+    if (ledger) {
       const state = ledger.getProviderState('serphouse')
       if (state.dailyUsed >= this.dailyCap) {
         ledger.markQuotaExceeded('serphouse', this.getNextDailyReset())
@@ -26,42 +31,35 @@ export class SerpHouseProvider {
       }
     }
 
-    let pathUsed = 'serphouse:post-bearer'
-
     try {
-      // Try POST method first
-      let response = await fetch(this.baseUrl, {
+      const params = {
+        q: query,
+        num: Math.min(options.limit || 10, this.batchSize),
+        domain: 'google.com',
+        lang: 'en',
+        device: 'desktop',
+        serp_type: 'web'
+      }
+
+      if (options.fresh && options.fresh !== 'all') {
+        const days = options.fresh.replace('d', '')
+        params.time_period = `past_${days}_days`
+      }
+
+      const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
           'User-Agent': 'Jack-Portal/2.0.0'
         },
-        body: JSON.stringify({ "q": query, "responseType": "json" }),
+        body: JSON.stringify(params),
         cf: { timeout: 15000 }
       })
 
-      // If POST fails, try GET fallback
-      if (!response.ok && response.status !== 429) {
-        pathUsed = 'serphouse:get-token'
-        const params = new URLSearchParams({
-          q: query,
-          responseType: 'json',
-          api_token: apiKey
-        })
-
-        response = await fetch(`${this.baseUrl}?${params}`, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Jack-Portal/2.0.0'
-          },
-          cf: { timeout: 15000 }
-        })
-      }
-
       if (!response.ok) {
         if (response.status === 429) {
-          if (ledger && ledger.markQuotaExceeded) ledger.markQuotaExceeded('serphouse', this.getNextDailyReset())
+          if (ledger) ledger.markQuotaExceeded('serphouse', this.getNextDailyReset())
           throw new Error('QUOTA_EXCEEDED')
         }
         throw new Error(`SerpHouse error: ${response.status}`)
@@ -69,15 +67,15 @@ export class SerpHouseProvider {
 
       const data = await response.json()
 
-      if (ledger && ledger.recordSuccess) {
+      if (ledger) {
         ledger.recordSuccess('serphouse')
         ledger.incrementDailyUsed('serphouse')
       }
 
-      return this.normalizeResults(data.results || data || [], options, pathUsed)
+      return this.normalizeResults(data.results || [], options)
 
     } catch (error) {
-      if (ledger && ledger.recordError) {
+      if (ledger) {
         if (error.message.includes('QUOTA')) {
           ledger.markQuotaExceeded('serphouse', this.getNextDailyReset())
         } else {
@@ -88,7 +86,7 @@ export class SerpHouseProvider {
     }
   }
 
-  normalizeResults(results, options, pathUsed) {
+  normalizeResults(results, options) {
     return results.map(item => ({
       title: item.title || 'No title',
       url: item.url || '#',
@@ -97,7 +95,6 @@ export class SerpHouseProvider {
       author: item.domain || null,
       thumbnail: null,
       score: 0.7,
-      path_used: pathUsed,
       extra: {
         provider: 'serphouse',
         position: item.position,

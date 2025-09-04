@@ -150,24 +150,20 @@ export class SearchService {
    */
   async executeSearch(query, options) {
     const { mode, limit, debug } = options
-    
-    // Normalize mode: treat 'niche' as 'normal'
-    const normalizedMode = mode === 'niche' ? 'normal' : mode
-    
-    const sliceWeights = this.sliceWeights[normalizedMode] || this.sliceWeights.normal
+    const sliceWeights = this.sliceWeights[mode] || this.sliceWeights.normal
 
     // Calculate slice quotas
     const sliceQuotas = this._calculateSliceQuotas(sliceWeights, limit)
 
     if (debug) {
-      console.log(`Executing ${normalizedMode} search with quotas:`, sliceQuotas)
+      console.log(`Executing ${mode} search with quotas:`, sliceQuotas)
     }
 
     // Execute slices in parallel
     const slicePromises = Object.entries(sliceQuotas).map(async ([sliceName, quota]) => {
       if (quota === 0) return { slice: sliceName, results: [], requested: 0, delivered: 0, chain: [] }
 
-      return await this.executeSlice(sliceName, query, { ...options, mode: normalizedMode, limit: quota })
+      return await this.executeSlice(sliceName, query, { ...options, limit: quota })
     })
 
     const slices = await Promise.all(slicePromises)
@@ -193,7 +189,7 @@ export class SearchService {
       totalUnique: deduplicated.length,
       dedupedCount: allResults.length - deduplicated.length,
       sliceBreakdown,
-      mode: normalizedMode
+      mode
     }
   }
 

@@ -11,15 +11,15 @@ import { SeznamProvider } from './src/lib/sources/seznam.js';
 
 // Mock environment with API keys
 const mockEnv = {
-  GOOGLE_API_KEY: 'AIzaSyAZhWamw25pgVB_3NAhvQOuSbkeh-mEWu0',
+  GOOGLE_API_KEY: 'your_google_api_key_here',
   GOOGLE_CSE_ID: '73e4998767b3c4800',
-  SERPAPI_KEY: 'fe5d56f86af256dacb81a171d20a3cca9db8d141e828bda7895ba23243c5b7c5',
-  SERPER_KEY: '8b0733a1da1ace1e16a34f5a396b48e4daa4d88e',
-  SERPWOW_API_KEY: '9496B06AECF34708BD1870A1313C1A52',
-  BRAVE_API_KEY: 'BSAUZcHnbsKgi9GTsu4wQV2SPEeZ3wy',
-  SERPHOUSE_KEY: 'SPDd5bq5r5VagaI7ktMSMTsi3ZGmdugm8luvKTenF9LEISbEkrwxFoJ04eUC',
-  RAPIDAPI_KEY: 'e170483005mshc804d33de8643bbp18f5f3jsn88ca17314529',
-  APIFY_TOKEN: 'apify_api_20hwygocmkoLWMmO95uhtn2Jfblm1m0oKdVd'
+  SERPAPI_KEY: 'your_serpapi_key_here',
+  SERPER_KEY: 'your_serper_key_here',
+  SERPWOW_API_KEY: 'your_serpwow_api_key_here',
+  BRAVE_API_KEY: 'your_brave_api_key_here',
+  SERPHOUSE_KEY: 'your_serphouse_key_here',
+  RAPIDAPI_KEY: 'your_rapidapi_key_here',
+  APIFY_TOKEN: 'your_apify_api_token_here'
 };
 
 // Mock ledger

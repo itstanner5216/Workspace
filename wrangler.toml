@@ -1,0 +1,92 @@
+name = "jack-portal"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Build configuration
+# [build]
+# command = "npm run build"
+
+# Environment-specific overrides
+[env.production]
+# Environment variables for API keys and configuration
+# Add your API keys here or use wrangler secret put <name>
+GOOGLE_API_KEY = ""
+GOOGLE_CSE_ID = ""
+SERPAPI_API_KEY = ""
+SERPER_API_KEY = ""
+YANDEX_API_KEY = ""
+BRAVE_API_KEY = ""
+SERPHOUSE_API_KEY = ""
+ADULTMEDIA_API_KEY = ""
+QUALITYPORN_API_KEY = ""
+APIFY_API_KEY = ""
+SCRAPERS_API_KEY = ""
+ADAPTERS_API_KEY = ""
+USER_AGENT = "Jack-Portal/2.0.0"
+TIMEOUT = "10000"
+DEFAULT_LIMIT = "10"
+MAX_LIMIT = "20"
+MIN_LIMIT = "3"
+CACHE_TTL = "3600"
+FOLLOW_LINKS = "false"
+INCLUDE_REDDIT = "false"
+FETCH_TIMEOUT_MS = "10000"
+ENVIRONMENT = "production"
+
+# Provider Ledger Configuration
+LEDGER_DEFAULT_QUOTA_RESET_MS = "3600000"  # 1 hour default
+TEMP_FAIL_COOLDOWN_MS = "300000"  # 5 minutes
+RETRY_MAX = "3"
+BACKOFF_BASE_MS = "1000"
+
+# KV namespace for caching
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
+
+# KV namespace for provider ledger
+[[env.production.kv_namespaces]]
+binding = "PROVIDER_LEDGER"
+id = "d85c23fcfa9e4e42b6f8d18d28af551d"
+
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+
+# KV namespace for caching
+[[kv_namespaces]]
+binding = "CACHE"
+id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
+preview_id = "02133c1d0165429f8bd8960915d0994e"
+
+# KV namespace for provider ledger
+[[kv_namespaces]]
+binding = "PROVIDER_LEDGER"
+id = "d85c23fcfa9e4e42b6f8d18d28af551d"
+preview_id = "provider_ledger_preview_id"
+
+# Durable Objects (commented out - using KV for caching instead)
+# [[durable_objects.bindings]]
+# name = "CACHE_DO"
+# class_name = "CacheDurableObject"
+
+# Durable Object migrations (commented out)
+# [[migrations]]
+# tag = "v1"
+# new_classes = ["CacheDurableObject"]
+
+# Rate limiting (optional) - commented out due to configuration issues
+# [rate_limiting]
+# burst = 10
+# period = 60
+
+# Custom domains (uncomment and configure if needed)
+# [[routes]]
+# pattern = "jack-portal.yourdomain.com/*"
+# zone_id = "your_zone_id"
+
+# Development configuration
+[dev]
+port = 8787
+local_protocol = "http"
+upstream_protocol = "https"

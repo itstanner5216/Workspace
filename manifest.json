@@ -1,0 +1,10 @@
+{
+  "name": "Jack Portal",
+  "short_name": "Jack Portal",
+  "description": "Advanced content search interface",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0b0c",
+  "theme_color": "#3b82f6",
+  "icons": []
+}

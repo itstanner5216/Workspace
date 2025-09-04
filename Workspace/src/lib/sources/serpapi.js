@@ -1,39 +1,44 @@
-export class YandexProvider {
+/**
+ * SerpApi Provider
+ * Google Search via SerpApi
+ */
+
+export class SerpApiProvider {
   constructor() {
-    this.name = 'Yandex'
-    this.baseUrl = 'https://api.serpwow.com/search'
-    this.dailyCap = 3
-    this.monthlyCap = 100
-    this.ttl = 4 * 24 * 60 * 60 // 4 days
-    this.batchSize = 50
+    this.name = 'SerpApi'
+    this.baseUrl = 'https://serpapi.com/search'
+    this.version = '1.0.0'
+    this.dailyCap = 100
+    this.monthlyCap = 3000
+    this.ttl = 24 * 60 * 60 // 24 hours
+    this.batchSize = 10 // Default batch size
   }
 
   async search(query, options, env) {
-    const apiKey = env.SERPWOW_API_KEY // Using SERPWOW_API_KEY for SERP Wow
+    const apiKey = env.SERPAPI_KEY
 
     if (!apiKey) {
-      console.warn('SERP Wow (Yandex) API key not configured')
+      console.warn('SerpApi API key not configured')
       return []
     }
 
+    // Check daily cap
     const ledger = options.ledger
     if (ledger) {
-      const state = ledger.getProviderState('yandex')
+      const state = ledger.getProviderState('serpapi')
       if (state.dailyUsed >= this.dailyCap) {
-        ledger.markQuotaExceeded('yandex', this.getNextDailyReset())
+        ledger.markQuotaExceeded('serpapi', this.getNextDailyReset())
         throw new Error('QUOTA_EXCEEDED_DAILY')
       }
     }
 
     try {
       const params = new URLSearchParams({
-        api_key: apiKey,
         q: query,
-        engine: 'yandex',
+        api_key: apiKey,
+        engine: 'google',
         num: Math.min(options.limit || 10, this.batchSize),
-        yandex_domain: options.yandex_domain || 'yandex.com',
-        yandex_location: options.yandex_location || '',
-        yandex_language: options.yandex_language || 'en'
+        start: 0
       })
 
       // Add freshness filter
@@ -42,30 +47,38 @@ export class YandexProvider {
         params.append('tbs', `qdr:d${days}`)
       }
 
-      const response = await fetch(`${this.baseUrl}?${params}`)
-      const data = await response.json()
+      const response = await fetch(`${this.baseUrl}?${params}`, {
+        headers: {
+          'User-Agent': 'Jack-Portal/2.0.0'
+        },
+        cf: { timeout: 10000 }
+      })
 
       if (!response.ok) {
         if (response.status === 429) {
-          if (ledger) ledger.markQuotaExceeded('yandex', this.getNextDailyReset())
+          if (ledger) ledger.markQuotaExceeded('serpapi', this.getNextDailyReset())
           throw new Error('QUOTA_EXCEEDED')
         }
-        throw new Error(`SERP Wow error: ${data.error || response.status}`)
+        throw new Error(`SerpApi error: ${response.status}`)
       }
 
+      const data = await response.json()
+
+      // Record success
       if (ledger) {
-        ledger.recordSuccess('yandex')
-        ledger.incrementDailyUsed('yandex')
+        ledger.recordSuccess('serpapi')
+        ledger.incrementDailyUsed('serpapi')
       }
 
+      // Normalize results
       return this.normalizeResults(data.organic_results || [], options)
 
     } catch (error) {
       if (ledger) {
         if (error.message.includes('QUOTA')) {
-          ledger.markQuotaExceeded('yandex', this.getNextDailyReset())
+          ledger.markQuotaExceeded('serpapi', this.getNextDailyReset())
         } else {
-          ledger.recordError('yandex', '5xx')
+          ledger.recordError('serpapi', '5xx')
         }
       }
       throw error
@@ -80,19 +93,21 @@ export class YandexProvider {
       published_at: item.date || null,
       author: item.displayed_link || null,
       thumbnail: item.thumbnail?.src || null,
-      score: 0.9,
+      score: 0.8,
       extra: {
-        provider: 'yandex',
+        provider: 'serpapi',
         position: item.position,
-        domain: item.domain
+        displayed_link: item.displayed_link,
+        cached_page_link: item.cached_page_link
       }
     }))
   }
 
   getNextDailyReset() {
+    // Next 00:00 America/New_York
     const now = new Date()
     const nextReset = new Date(now)
-    nextReset.setUTCHours(4, 0, 0, 0)
+    nextReset.setUTCHours(4, 0, 0, 0) // 00:00 EST is 04:00 UTC
     if (nextReset <= now) {
       nextReset.setDate(nextReset.getDate() + 1)
     }

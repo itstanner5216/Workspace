@@ -4,7 +4,9 @@ A production-ready Cloudflare Worker for advanced content search across multiple
 
 ## 🚀 Features
 
-- **Multi-Provider Search**: Google, Brave, Yandex, and AdultMedia search integration
+- **Weighted Multi-Provider Search**: Intelligent allocation across Google, Serper, Brave, Yandex, RapidMedia, Scrapers, and Adapters
+- **Smart Fallback System**: Rotating fallbacks with quota-aware circuit breaker
+- **Provider Health Monitoring**: KV-backed ledger tracking provider status and performance
 - **Intelligent Caching**: 30-minute KV-based caching with smart cache keys
 - **Rate Limiting**: IP and endpoint-based rate limiting to prevent abuse
 - **Input Validation**: Comprehensive sanitization and validation of all inputs
@@ -48,6 +50,33 @@ npm install
 
 See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) for complete API reference.
 
+### Search Modes & Weight Allocation
+
+Jack Portal supports multiple search modes with intelligent result allocation:
+
+#### Normal Mode (default)
+- **Google**: 50% (with Serper as fallback)
+- **Brave**: 15% (with Yandex as fallback)
+- **RapidMedia**: 15%
+- **Scrapers**: 10%
+- **Adapters**: 10%
+
+#### Deep Niche Mode
+- **RapidMedia**: 30%
+- **Yandex**: 30%
+- **Scrapers**: 20%
+- **Adapters**: 20%
+- Google/Serper used only for fallback when results are insufficient
+
+### Fallback System
+
+When a provider fails, hits quota, or returns insufficient results:
+
+1. **Primary Fallbacks**: Provider-specific fallbacks (e.g., Serper → Google)
+2. **Rotating Selection**: Priority-weighted round-robin to prevent provider overload
+3. **Global Backfill**: Final pass across all healthy providers to meet result limits
+4. **Circuit Breaker**: Automatic provider disabling on quota/errors with auto-recovery
+
 ### Endpoints
 - `GET /api/search` - Multi-provider search
 - `GET /health` - Health check
@@ -55,7 +84,8 @@ See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md) for complete API reference.
 
 ### Example
 ```bash
-curl "https://your-worker.workers.dev/api/search?q=cloudflare&limit=5"
+curl "https://your-worker.workers.dev/api/search?q=cloudflare&limit=5&mode=normal"
+curl "https://your-worker.workers.dev/api/search?q=niche+topic&limit=10&mode=deep_niche&debug=true"
 ```
 
 ## 🚢 Deployment
@@ -74,8 +104,14 @@ wrangler deploy
 ```bash
 # API Keys (set as secrets)
 GOOGLE_API_KEY=your_key
+GOOGLE_CSE_ID=your_cse_id
 BRAVE_API_KEY=your_key
 YANDEX_API_KEY=your_key
+ADULTMEDIA_API_KEY=your_key
+SERPER_API_KEY=your_key
+RAPIDMEDIA_API_KEY=your_key
+SCRAPERS_API_KEY=your_key
+ADAPTERS_API_KEY=your_key
 
 # Settings
 LOG_LEVEL=INFO
@@ -92,6 +128,10 @@ compatibility_date = "2024-01-01"
 [[kv_namespaces]]
 binding = "CACHE"
 id = "your_kv_namespace_id"
+
+[[kv_namespaces]]
+binding = "PROVIDER_LEDGER"
+id = "your_provider_ledger_namespace_id"
 ```
 
 ## 💻 Development
@@ -106,17 +146,27 @@ npm run format       # Format code
 ### Project Structure
 ```
 src/
-├── worker.js        # Main worker entry point
-├── html.js          # HTML interface
+├── worker.js           # Main worker entry point
+├── html.js             # HTML interface
 ├── handlers/
-│   └── aggregate.js # Search handler
+│   └── aggregate.js    # Search handler
 └── lib/
-    ├── validation.js    # Input validation
-    ├── response.js      # Response utilities
-    ├── rate-limit.js    # Rate limiting
-    ├── logger.js        # Logging utilities
-    ├── search-service.js # Multi-provider search
-    └── sources/         # Individual providers
+    ├── validation.js       # Input validation
+    ├── response.js         # Response utilities
+    ├── rate-limit.js       # Rate limiting
+    ├── logger.js           # Logging utilities
+    ├── search-service.js   # Weighted multi-provider search
+    ├── provider-ledger.js  # Provider health & quota management
+    └── sources/            # Individual providers
+        ├── index.js
+        ├── google.js
+        ├── serper.js
+        ├── brave.js
+        ├── yandex.js
+        ├── rapidmedia.js
+        ├── scrapers.js
+        ├── adapters.js
+        └── adultmedia.js
 ```
 
 ## 📊 Monitoring

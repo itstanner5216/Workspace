@@ -3,14 +3,26 @@ main = "src/worker.js"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-[vars]
+# Build configuration
+# [build]
+# command = "npm run build"
+
+# Environment-specific overrides
+[env.production]
 # Environment variables for API keys and configuration
 # Add your API keys here or use wrangler secret put <name>
 GOOGLE_API_KEY = ""
 GOOGLE_CSE_ID = ""
-BRAVE_API_KEY = ""
+SERPAPI_API_KEY = ""
+SERPER_API_KEY = ""
 YANDEX_API_KEY = ""
+BRAVE_API_KEY = ""
+SERPHOUSE_API_KEY = ""
 ADULTMEDIA_API_KEY = ""
+QUALITYPORN_API_KEY = ""
+APIFY_API_KEY = ""
+SCRAPERS_API_KEY = ""
+ADAPTERS_API_KEY = ""
 USER_AGENT = "Jack-Portal/2.0.0"
 TIMEOUT = "10000"
 DEFAULT_LIMIT = "10"
@@ -20,14 +32,23 @@ CACHE_TTL = "3600"
 FOLLOW_LINKS = "false"
 INCLUDE_REDDIT = "false"
 FETCH_TIMEOUT_MS = "10000"
+ENVIRONMENT = "production"
 
-# Build configuration
-# [build]
-# command = "npm run build"
+# Provider Ledger Configuration
+LEDGER_DEFAULT_QUOTA_RESET_MS = "3600000"  # 1 hour default
+TEMP_FAIL_COOLDOWN_MS = "300000"  # 5 minutes
+RETRY_MAX = "3"
+BACKOFF_BASE_MS = "1000"
 
-# Environment-specific overrides
-[env.production]
-vars = { ENVIRONMENT = "production" }
+# KV namespace for caching
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
+
+# KV namespace for provider ledger
+[[env.production.kv_namespaces]]
+binding = "PROVIDER_LEDGER"
+id = "provider_ledger_namespace_id"
 
 [env.staging]
 vars = { ENVIRONMENT = "staging" }
@@ -37,6 +58,12 @@ vars = { ENVIRONMENT = "staging" }
 binding = "CACHE"
 id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
 preview_id = "02133c1d0165429f8bd8960915d0994e"
+
+# KV namespace for provider ledger
+[[kv_namespaces]]
+binding = "PROVIDER_LEDGER"
+id = "provider_ledger_namespace_id"
+preview_id = "provider_ledger_preview_id"
 
 # Durable Objects (commented out - using KV for caching instead)
 # [[durable_objects.bindings]]

@@ -114,11 +114,8 @@ export const PORTAL_HTML = `<!DOCTYPE html>
           <div>
             <label for="modeSel">Search Mode</label>
             <select id="modeSel" aria-label="Search mode">
-              <option value="niche">Niche</option>
-              <option value="keywords">Keywords</option>
+              <option value="normal">Normal</option>
               <option value="deep_niche">Deep Niche</option>
-              <option value="forums">Forums</option>
-              <option value="tumblrish">Tumblr-like</option>
             </select>
           </div>
           <div>

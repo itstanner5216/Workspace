@@ -36,5 +36,8 @@
   "bugs": {
     "url": "https://github.com/itstanner5216/workspace/issues"
   },
-  "homepage": "https://github.com/itstanner5216/workspace#readme"
+  "homepage": "https://github.com/itstanner5216/workspace#readme",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
 }

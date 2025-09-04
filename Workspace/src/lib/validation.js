@@ -50,11 +50,16 @@ export function validateQuery(query) {
  * @returns {Object} - {isValid: boolean, value: string}
  */
 export function validateMode(mode) {
-  const allowedModes = ['niche', 'broad', 'exact']
-  const sanitized = sanitizeString(mode || 'niche')
+  const allowedModes = ['normal', 'deep_niche']
+  const sanitized = sanitizeString(mode || 'normal')
+
+  // Handle legacy 'niche' mode by treating it as 'normal'
+  if (sanitized === 'niche') {
+    return { isValid: true, value: 'normal' }
+  }
 
   if (!allowedModes.includes(sanitized)) {
-    return { isValid: true, value: 'niche' } // Default to niche if invalid
+    return { isValid: true, value: 'normal' } // Default to normal if invalid
   }
 
   return { isValid: true, value: sanitized }
@@ -215,6 +220,7 @@ export function validateAllInputs(params, env) {
   // Validate boolean parameters
   data.showThumbs = validateBoolean(params.get('showThumbs'), true)
   data.safeMode = validateBoolean(params.get('safeMode'), true)
+  data.debug = validateBoolean(params.get('debug'), false)
 
   // Optional parameters that don't need validation
   data.duration = sanitizeString(params.get('duration') || '')

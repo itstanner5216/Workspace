@@ -1,8 +1,18 @@
 /**
  * Aggregate Search Handler
  * Handles search requests across multiple providers with caching
- *
- * @module handlers/aggregate
+     const response = {
+      results: results.results,
+      query,
+      mode,
+      timestamp: Date.now(),
+      cached: false,
+      requestId: crypto.randomUUID(),
+      totalUnique: results.totalUnique,
+      dedupedCount: results.dedupedCount,
+      ...(debug && results.providerBreakdown && { providerBreakdown: results.providerBreakdown }),
+      ...(debug && results.ledgerState && { ledgerState: results.ledgerState })
+    }e handlers/aggregate
  */
 
 import { SearchService } from '../lib/search-service.js'
@@ -56,11 +66,12 @@ export async function handleAggregate(request, env) {
     durationMode,
     showThumbs,
     provider,
-    safeMode
+    safeMode,
+    debug
   } = validation.data
 
   // Create cache key with validated parameters (without timestamp to enable proper caching)
-  const cacheKey = `search:${query}:${mode}:${fresh}:${limit}:${provider || 'all'}`
+  const cacheKey = `search:${query}:${mode}:${fresh}:${limit}:${provider || 'all'}:${safeMode}:${debug || false}`
 
   // Try to get from cache first
   try {
@@ -95,6 +106,7 @@ export async function handleAggregate(request, env) {
       showThumbs,
       provider,
       safeMode,
+      debug,
       ip
     })
 
@@ -104,7 +116,11 @@ export async function handleAggregate(request, env) {
       mode,
       timestamp: Date.now(),
       cached: false,
-      requestId: crypto.randomUUID()
+      requestId: crypto.randomUUID(),
+      totalUnique: results.totalUnique,
+      dedupedCount: results.dedupedCount,
+      ...(debug && results.providerBreakdown && { providerBreakdown: results.providerBreakdown }),
+      ...(debug && results.ledgerState && { ledgerState: results.ledgerState })
     }
 
     // Cache the result for 30 minutes (1800 seconds)

@@ -16,8 +16,8 @@ export class ScrapersProvider {
   async search(query, options, env) {
     const apiKey = env.SCRAPERS_API_KEY
 
-    if (!apiKey) {
-      console.warn('Scrapers API key not configured')
+    if (!apiKey || apiKey === 'your_scrapers_api_key_here' || apiKey.includes('your_')) {
+      console.warn('Scrapers API key not configured or using placeholder')
       return []
     }
 

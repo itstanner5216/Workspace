@@ -10,6 +10,7 @@
 import { PORTAL_HTML } from './html.js'
 import { handleAggregate } from './handlers/aggregate.js'
 import { handleDiagnostics } from './handlers/diagnostics.js'
+import { handleHealth } from './handlers/health.js'
 import { handleOptionsRequest, createErrorResponse } from './lib/response.js'
 import {
   logInfo,
@@ -17,7 +18,7 @@ import {
   logRequestStart,
   logRequestEnd,
   createRequestContext,
-  setLogLevel
+  initLogLevel
 } from './lib/logger.js'
 
 /**
@@ -42,6 +43,9 @@ export default {
                request.headers.get('X-Real-IP') ||
                'unknown'
 
+    // Initialize log level from environment
+    initLogLevel(env)
+
     // Log incoming request
     logRequestStart({
       requestId,
@@ -55,6 +59,18 @@ export default {
       // Handle CORS preflight requests
       if (method === 'OPTIONS') {
         const response = handleOptionsRequest(request)
+        logRequestEnd({
+          requestId,
+          method,
+          path: url.pathname,
+          ip
+        }, Date.now() - startTime, response.status)
+        return response
+      }
+
+      // Handle health check endpoint
+      if (url.pathname === '/health') {
+        const response = await handleHealth(request, env)
         logRequestEnd({
           requestId,
           method,
@@ -96,9 +112,9 @@ export default {
       }
 
       // Serve static HTML for all other routes
-      const htmlResponse = new Response(PORTAL_HTML, {
+      const htmlResponse = new Response('Hello World', {
         headers: {
-          'Content-Type': 'text/html',
+          'Content-Type': 'text/plain',
           'X-Request-ID': requestId,
           'X-Response-Time': `${Date.now() - startTime}ms`,
           'Cache-Control': 'public, max-age=300' // Cache HTML for 5 minutes

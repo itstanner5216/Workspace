@@ -18,13 +18,32 @@ export const LOG_LEVELS = {
 let currentLogLevel = LOG_LEVELS.INFO
 
 /**
+ * Initialize log level from environment
+ * @param {Object} env - Environment variables
+ */
+export function initLogLevel(env) {
+  if (env.LOG_LEVEL) {
+    const envLogLevel = parseInt(env.LOG_LEVEL)
+    if (!isNaN(envLogLevel) && envLogLevel >= 0 && envLogLevel <= 3) {
+      currentLogLevel = envLogLevel
+    }
+  }
+}
+
+/**
  * Sets the current log level
- * @param {string} level - Log level string
+ * @param {string|number} level - Log level string or number
  */
 export function setLogLevel(level) {
-  const upperLevel = level.toUpperCase()
-  if (LOG_LEVELS[upperLevel] !== undefined) {
-    currentLogLevel = LOG_LEVELS[upperLevel]
+  if (typeof level === 'string') {
+    const upperLevel = level.toUpperCase()
+    if (LOG_LEVELS[upperLevel] !== undefined) {
+      currentLogLevel = LOG_LEVELS[upperLevel]
+    }
+  } else if (typeof level === 'number') {
+    if (level >= 0 && level <= 3) {
+      currentLogLevel = level
+    }
   }
 }
 

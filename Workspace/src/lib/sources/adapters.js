@@ -16,8 +16,8 @@ export class AdaptersProvider {
   async search(query, options, env) {
     const apiKey = env.ADAPTERS_API_KEY
 
-    if (!apiKey) {
-      console.warn('Adapters API key not configured')
+    if (!apiKey || apiKey === 'your_adapters_api_key_here' || apiKey.includes('your_')) {
+      console.warn('Adapters API key not configured or using placeholder')
       return []
     }
 
@@ -42,7 +42,8 @@ export class AdaptersProvider {
           'Authorization': `Bearer ${apiKey}`,
           'User-Agent': 'Jack-Portal/2.0.0'
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
+        cf: { timeout: 10000 } // 10 second timeout
       })
 
       const data = await response.json()

@@ -48,7 +48,7 @@ id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
 # KV namespace for provider ledger
 [[env.production.kv_namespaces]]
 binding = "PROVIDER_LEDGER"
-id = "provider_ledger_namespace_id"
+id = "d85c23fcfa9e4e42b6f8d18d28af551d"
 
 [env.staging]
 vars = { ENVIRONMENT = "staging" }
@@ -62,7 +62,7 @@ preview_id = "02133c1d0165429f8bd8960915d0994e"
 # KV namespace for provider ledger
 [[kv_namespaces]]
 binding = "PROVIDER_LEDGER"
-id = "provider_ledger_namespace_id"
+id = "d85c23fcfa9e4e42b6f8d18d28af551d"
 preview_id = "provider_ledger_preview_id"
 
 # Durable Objects (commented out - using KV for caching instead)

@@ -157,12 +157,14 @@ Core application source code that is essential for functionality.
 ## 📊 Removal Impact Analysis
 
 ### Low Risk (Safe to Remove):
-- Empty files (4 files): CLOUDFLARE_SERVICES.md, simple-health-check.js, test-serphouse.js, KV_USAGE_EXAMPLE.js
-- Redundant documentation (6 files, excluding empty CLOUDFLARE_SERVICES.md): API_DOCUMENTATION.md, CHANGES.md, DEPLOYMENT_CHECKLIST.md, DEPLOYMENT_GUIDE.md, QUICKSTART.md, FULL_ROADMAP.md
-- Ad-hoc test scripts (9 files, excluding 3 empty files): direct-test.js, health-check.js, runtime-tests.js, simple-test.js, test-adapters-fix.js, test-corrections.js, test-health-endpoint.js, test-health.js, test-infrastructure.js, test-provider-selftest.js
-- Docker files (3 files): If not using Docker for development
+- **Empty files (4 files):** CLOUDFLARE_SERVICES.md, simple-health-check.js, test-serphouse.js, KV_USAGE_EXAMPLE.js
+- **Non-empty documentation (6 files):** API_DOCUMENTATION.md, CHANGES.md, DEPLOYMENT_CHECKLIST.md, DEPLOYMENT_GUIDE.md, QUICKSTART.md, FULL_ROADMAP.md
+- **Non-empty test scripts (10 files):** direct-test.js, health-check.js, runtime-tests.js, simple-test.js, test-adapters-fix.js, test-corrections.js, test-health-endpoint.js, test-health.js, test-infrastructure.js, test-provider-selftest.js
+- **Docker files (3 files):** Dockerfile, docker-compose.yml, .dockerignore (only if not using Docker for development)
 
-**Total Low Risk Files: 23 files (4 empty + 6 documentation + 10 test scripts + 3 Docker)**
+**Total Low Risk Files: 23 files**
+- Note: This accounts for 4 empty files + 6 documentation files + 10 test files + 3 Docker files = 23 files
+- The remaining 2 non-essential files are favicon.svg and manifest.json (medium risk category)
 
 ### Medium Risk (Consider Use Case):
 - favicon.svg & manifest.json: Only needed if web UI is important

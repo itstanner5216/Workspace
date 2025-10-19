@@ -167,10 +167,11 @@ Core application source code that is essential for functionality.
 - The remaining 2 non-essential files are favicon.svg and manifest.json (medium risk category)
 
 ### Medium Risk (Consider Use Case):
-- favicon.svg & manifest.json: Only needed if web UI is important
-- Docker files: Only needed if team prefers Docker for local development
+- **UI/Asset files (2 files):** favicon.svg & manifest.json - Only needed if web UI is important
 
-**Total Medium Risk Files: 3 files**
+**Total Medium Risk Files: 2 files**
+
+**Note:** Docker files are in the low risk category as they're clearly optional for a serverless application, but teams may prefer to keep them if they use Docker for local development.
 
 ### High Risk (DO NOT REMOVE):
 - README.md: Primary documentation

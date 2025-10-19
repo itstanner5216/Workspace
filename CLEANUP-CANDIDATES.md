@@ -11,7 +11,7 @@ This document identifies non-essential files in the repository that could potent
 ## Summary
 
 **Total Files Analyzed:** 48  
-**Non-Essential Files Identified:** 28  
+**Non-Essential Files Identified:** 25  
 **Categories:** 6  
 *Note: Essential files like README.md and TODO.md are documented but excluded from removal recommendations.*
 
@@ -19,7 +19,7 @@ This document identifies non-essential files in the repository that could potent
 
 ## 📝 Category 1: Documentation Files
 
-### Non-Essential Documentation (6 files)
+### Non-Essential Documentation (7 files)
 
 These files provide supplementary documentation but are not required for the application to function.
 
@@ -54,7 +54,7 @@ These files provide supplementary documentation but are not required for the app
 
 ---
 
-## 🧪 Category 2: Test and Development Scripts (12 files)
+## 🧪 Category 2: Test and Development Scripts (13 files)
 
 These are ad-hoc test scripts used during development. The project has no formal test infrastructure, and these appear to be temporary testing utilities.
 
@@ -158,11 +158,11 @@ Core application source code that is essential for functionality.
 
 ### Low Risk (Safe to Remove):
 - Empty files (4 files): CLOUDFLARE_SERVICES.md, simple-health-check.js, test-serphouse.js, KV_USAGE_EXAMPLE.js
-- Redundant documentation (6 files): API_DOCUMENTATION.md, CHANGES.md, DEPLOYMENT_CHECKLIST.md, DEPLOYMENT_GUIDE.md, QUICKSTART.md, FULL_ROADMAP.md
-- Ad-hoc test scripts (12 files): All test-*.js, *-test.js, and development utility files
+- Redundant documentation (6 files, excluding empty CLOUDFLARE_SERVICES.md): API_DOCUMENTATION.md, CHANGES.md, DEPLOYMENT_CHECKLIST.md, DEPLOYMENT_GUIDE.md, QUICKSTART.md, FULL_ROADMAP.md
+- Ad-hoc test scripts (9 files, excluding 3 empty files): direct-test.js, health-check.js, runtime-tests.js, simple-test.js, test-adapters-fix.js, test-corrections.js, test-health-endpoint.js, test-health.js, test-infrastructure.js, test-provider-selftest.js
 - Docker files (3 files): If not using Docker for development
 
-**Total Low Risk Files: 25 files**
+**Total Low Risk Files: 23 files (4 empty + 6 documentation + 10 test scripts + 3 Docker)**
 
 ### Medium Risk (Consider Use Case):
 - favicon.svg & manifest.json: Only needed if web UI is important
@@ -188,15 +188,15 @@ Core application source code that is essential for functionality.
    - KV_USAGE_EXAMPLE.js
 
 ### Short-term Considerations:
-2. **Consolidate documentation** (6 files):
+2. **Consolidate documentation** (6 non-empty files):
    - Consider merging API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md, and QUICKSTART.md content into README.md or GitHub Wiki
    - Move FULL_ROADMAP.md content to GitHub Projects/Issues
    - Move CHANGES.md content to GitHub Releases
    - Move DEPLOYMENT_CHECKLIST.md content to documentation
 
-3. **Archive test scripts** (12 files):
+3. **Archive test scripts** (10 non-empty files):
    - Create a `/tests-archive/` or `/dev-scripts/` directory
-   - Move all test-*.js, *-test.js, and development utility files there
+   - Move all test-*.js, *-test.js, and development utility files (including direct-test.js, health-check.js, runtime-tests.js, etc.) there
    - Update .gitignore to exclude this directory
    - Or delete entirely if not needed for reference
 

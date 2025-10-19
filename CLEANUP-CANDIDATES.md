@@ -11,16 +11,18 @@ This document identifies non-essential files in the repository that could potent
 ## Summary
 
 **Total Files Analyzed:** 48  
-**Non-Essential Files Identified:** 30  
-**Categories:** 6
+**Non-Essential Files Identified:** 28  
+**Categories:** 6  
+*Note: Essential files like README.md and TODO.md are documented but excluded from removal recommendations.*
 
 ---
 
-## 📝 Category 1: Documentation Files (9 files)
+## 📝 Category 1: Documentation Files
+
+### Non-Essential Documentation (6 files)
 
 These files provide supplementary documentation but are not required for the application to function.
 
-### Files:
 1. **API_DOCUMENTATION.md** (6.6 KB)
    - **Reasoning:** Comprehensive API documentation that duplicates information in README.md. While useful for reference, the main README already includes API endpoint information. This could be consolidated or moved to a wiki.
 
@@ -42,6 +44,8 @@ These files provide supplementary documentation but are not required for the app
 7. **CLOUDFLARE_SERVICES.md** (0 bytes)
    - **Reasoning:** Empty file with no content. Appears to be a placeholder that was never populated. Serves no purpose.
 
+### Essential Documentation (2 files) - DO NOT REMOVE
+
 8. **README.md** (7.0 KB)
    - **Reasoning:** ⚠️ **DO NOT REMOVE** - This is the primary repository documentation and is essential for understanding the project.
 
@@ -50,7 +54,7 @@ These files provide supplementary documentation but are not required for the app
 
 ---
 
-## 🧪 Category 2: Test and Development Scripts (11 files)
+## 🧪 Category 2: Test and Development Scripts (12 files)
 
 These are ad-hoc test scripts used during development. The project has no formal test infrastructure, and these appear to be temporary testing utilities.
 
@@ -153,19 +157,18 @@ Core application source code that is essential for functionality.
 ## 📊 Removal Impact Analysis
 
 ### Low Risk (Safe to Remove):
-- Empty files (3 files): CLOUDFLARE_SERVICES.md, simple-health-check.js, test-serphouse.js, KV_USAGE_EXAMPLE.js
-- Redundant documentation (5 files): API_DOCUMENTATION.md, CHANGES.md, DEPLOYMENT_CHECKLIST.md, QUICKSTART.md, FULL_ROADMAP.md
-- Ad-hoc test scripts (11 files): All test-*.js and *-test.js files
+- Empty files (4 files): CLOUDFLARE_SERVICES.md, simple-health-check.js, test-serphouse.js, KV_USAGE_EXAMPLE.js
+- Redundant documentation (6 files): API_DOCUMENTATION.md, CHANGES.md, DEPLOYMENT_CHECKLIST.md, DEPLOYMENT_GUIDE.md, QUICKSTART.md, FULL_ROADMAP.md
+- Ad-hoc test scripts (12 files): All test-*.js, *-test.js, and development utility files
 - Docker files (3 files): If not using Docker for development
 
-**Total Low Risk Files: 22 files**
+**Total Low Risk Files: 25 files**
 
 ### Medium Risk (Consider Use Case):
-- DEPLOYMENT_GUIDE.md: May be useful for new team members
 - favicon.svg & manifest.json: Only needed if web UI is important
 - Docker files: Only needed if team prefers Docker for local development
 
-**Total Medium Risk Files: 5 files**
+**Total Medium Risk Files: 3 files**
 
 ### High Risk (DO NOT REMOVE):
 - README.md: Primary documentation
@@ -185,14 +188,15 @@ Core application source code that is essential for functionality.
    - KV_USAGE_EXAMPLE.js
 
 ### Short-term Considerations:
-2. **Consolidate documentation** (5 files):
+2. **Consolidate documentation** (6 files):
    - Consider merging API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md, and QUICKSTART.md content into README.md or GitHub Wiki
    - Move FULL_ROADMAP.md content to GitHub Projects/Issues
    - Move CHANGES.md content to GitHub Releases
+   - Move DEPLOYMENT_CHECKLIST.md content to documentation
 
-3. **Archive test scripts** (11 files):
+3. **Archive test scripts** (12 files):
    - Create a `/tests-archive/` or `/dev-scripts/` directory
-   - Move all test-*.js and *-test.js files there
+   - Move all test-*.js, *-test.js, and development utility files there
    - Update .gitignore to exclude this directory
    - Or delete entirely if not needed for reference
 

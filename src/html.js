@@ -104,9 +104,9 @@ export const PORTAL_HTML = `<!DOCTYPE html>
       text-align:right;color:var(--muted);font-size:12px;
       padding:12px;border-radius:8px;background:var(--panel);border:1px solid #2a2c31;
     }
-    .status.ready{color:var(--ok);border-color:var(--ok)}
+    .status.ready{color:var(--accent);border-color:var(--accent)}
     .status.searching{color:var(--accent);border-color:var(--accent);animation:pulse 1.5s infinite}
-    .status.done{color:var(--ok);border-color:var(--ok)}
+    .status.done{color:var(--accent);border-color:var(--accent)}
     .status.error{color:var(--bad);border-color:var(--bad)}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
   </style>
@@ -183,7 +183,7 @@ export const PORTAL_HTML = `<!DOCTYPE html>
     const freshSel = document.getElementById('freshSel');
     const limitInput = document.getElementById('limit');
     const providerSel = document.getElementById('provider');
-    const resultsDiv = document.getElementById('results');
+    const resultsDiv = document.getElementById('resultsContainer');
     const statusDiv = document.getElementById('status');
     const collapsibleHeader = document.querySelector('.collapsible-header');
     const collapsibleContent = document.querySelector('.collapsible-content');

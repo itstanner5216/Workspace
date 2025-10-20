@@ -26,19 +26,18 @@ export class QualityPornProvider {
     }
 
     try {
-      const requestBody = {
-        q: query,
-        limit: Math.min(options.limit || 10, this.batchSize)
-      }
+      const params = new URLSearchParams({
+        query: query,
+        page: 1,
+        timeout: 5000
+      })
 
-      const response = await fetch(`${this.baseUrl}/search`, {
-        method: 'POST',
+      const response = await fetch(`${this.baseUrl}/search?${params}`, {
+        method: 'GET',
         headers: {
-          'X-RapidAPI-Key': apiKey,
-          'X-RapidAPI-Host': 'quality-porn.p.rapidapi.com',
-          'Content-Type': 'application/json'
+          'x-rapidapi-key': apiKey,
+          'x-rapidapi-host': 'quality-porn.p.rapidapi.com'
         },
-        body: JSON.stringify(requestBody),
         cf: {
           cacheTtl: this.ttl,
           cacheEverything: true
@@ -48,6 +47,9 @@ export class QualityPornProvider {
       if (!response.ok) {
         if (response.status === 400) {
           throw new Error('BAD_PARAMS')
+        }
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('BAD_PARAMS') // API key issues
         }
         if (response.status === 404) {
           throw new Error('BAD_HOST')
@@ -59,7 +61,7 @@ export class QualityPornProvider {
         if (response.status >= 500) {
           throw new Error('UPSTREAM_ERROR')
         }
-        throw new Error(`QualityPorn error: ${response.status}`)
+        throw new Error('UPSTREAM_ERROR') // Default to upstream error for unknown status codes
       }
 
       const data = await response.json()
@@ -69,7 +71,10 @@ export class QualityPornProvider {
         ledger.incrementMonthlyUsed('qualityporn')
       }
 
-      return this.normalizeResults(data.results || [], options)
+      // Add lightweight telemetry for max results detection
+      console.log(`QualityPorn telemetry: items_returned=${data?.results?.length || data?.videos?.length || data?.length || 0}, pages_requested=1, server_pagination_hints=unknown`)
+
+      return this.normalizeResults(data.results || data.videos || data || [], options)
 
     } catch (error) {
       if (ledger) {

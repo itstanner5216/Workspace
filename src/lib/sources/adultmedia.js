@@ -6,7 +6,6 @@ export class AdultMediaProvider {
     // Switched to the confirmed working endpoint
     this.baseUrl = 'https://porn-api-adultdatalink.p.rapidapi.com/pornpics/search'
     this.version = '1.0.0'
-    this.dailyCap = 166
     this.monthlyCap = 5000
     this.ttl = 3 * 24 * 60 * 60 // 3 days
     this.batchSize = 20
@@ -23,9 +22,9 @@ export class AdultMediaProvider {
     const ledger = options.ledger
     if (ledger) {
       const state = ledger.getProviderState('adultmedia')
-      if (state.dailyUsed >= this.dailyCap) {
+      if (state.monthlyUsed >= this.monthlyCap) {
         ledger.markQuotaExceeded('adultmedia')
-        throw new Error('QUOTA_EXCEEDED_DAILY')
+        throw new Error('QUOTA_EXCEEDED_MONTHLY')
       }
     }
 
@@ -50,18 +49,30 @@ export class AdultMediaProvider {
       })
 
       if (!response.ok) {
+        if (response.status === 400) {
+          throw new Error('BAD_PARAMS')
+        }
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('BAD_PARAMS') // API key issues
+        }
+        if (response.status === 404) {
+          throw new Error('BAD_HOST')
+        }
         if (response.status === 429) {
           if (ledger) ledger.markQuotaExceeded('adultmedia')
-          throw new Error('QUOTA_EXCEEDED')
+          throw new Error('RATE_LIMIT')
         }
-        throw new Error(`AdultMedia error: ${response.status}`)
+        if (response.status >= 500) {
+          throw new Error('UPSTREAM_ERROR')
+        }
+        throw new Error('UPSTREAM_ERROR') // Default to upstream error for unknown status codes
       }
 
       const data = await response.json()
 
       if (ledger) {
         ledger.recordSuccess('adultmedia')
-        ledger.incrementDailyUsed('adultmedia')
+        ledger.incrementMonthlyUsed('adultmedia')
       }
 
       // Use the new, specific normalizer for this API's data
@@ -71,8 +82,12 @@ export class AdultMediaProvider {
       if (ledger) {
         if (error.message.includes('QUOTA')) {
           ledger.markQuotaExceeded('adultmedia')
-        } else {
+        } else if (error.message.includes('RATE_LIMIT')) {
+          ledger.markQuotaExceeded('adultmedia')
+        } else if (error.message.includes('UPSTREAM_ERROR') || error.message.includes('5')) {
           ledger.recordError('adultmedia', '5xx')
+        } else {
+          ledger.recordError('adultmedia', '4xx')
         }
       }
       throw error

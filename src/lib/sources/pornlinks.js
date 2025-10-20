@@ -33,7 +33,7 @@ export class PornlinksProvider {
         limit: Math.min(options.limit || 10, this.batchSize)
       })
 
-      const response = await fetch(`${this.baseUrl}/porns`, {
+      const response = await fetch(`${this.baseUrl}/porns?${params}`, {
         method: 'GET',
         headers: {
           'X-RapidAPI-Key': apiKey,

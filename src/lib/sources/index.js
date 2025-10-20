@@ -12,4 +12,4 @@ export { PornlinksProvider } from './pornlinks.js'
 export { PornhubProvider } from './pornhub.js'
 export { PurepornProvider } from './pureporn.js'
 export { XnxxProvider } from './xnxx.js'
-// export { SeznamProvider } from './seznam.js' // Disabled - API endpoint doesn't exist
+export { SeznamProvider } from './seznam.js'

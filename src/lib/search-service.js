@@ -12,8 +12,8 @@ import {
   PornlinksProvider,
   PornhubProvider,
   PurepornProvider,
-  XnxxProvider
-  // SeznamProvider // Disabled - API endpoint doesn't exist
+  XnxxProvider,
+  SeznamProvider
 } from './sources/index.js'
 import { ProviderLedger } from './provider-ledger.js'
 import { AdapterRegistry } from './adapter-registry.js'
@@ -36,14 +36,14 @@ export class SearchService {
     // Define chains by mode
     this.chains = {
       normal: {
-        google_slice: ['google', 'serpapi', /* 'seznam', */ 'adapters_scrapers_parallel', 'apify'], // Disabled - API endpoint doesn't exist
+        google_slice: ['google', 'serpapi', 'seznam', 'adapters_scrapers_parallel', 'apify'],
         qualityporn_xnxx_slice: ['qualityporn', 'xnxx', 'pornlinks', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
         pornhub_pureporn_slice: ['pornhub', 'pureporn', 'pornlinks', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
         adapters_slice: ['adapters_parallel', 'apify'],
         scrapers_slice: ['scrapers_parallel', 'apify']
       },
       deep_niche: {
-        serply_slice: ['serply', 'serper', 'brave', 'serphouse', 'pornlinks', 'adapters_scrapers_parallel', 'apify'],
+        serply_slice: ['serply', 'serper', 'seznam', 'brave', 'serphouse', 'pornlinks', 'adapters_scrapers_parallel', 'apify'],
         qualityporn_xnxx_slice: ['qualityporn', 'xnxx', 'pornlinks', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
         pornhub_pureporn_slice: ['pornhub', 'pureporn', 'pornlinks', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
         adapters_slice: ['adapters_parallel', 'apify'],
@@ -75,20 +75,21 @@ export class SearchService {
    */
   _initializeProviderCaps() {
     // Set caps in ledger
-    this.ledger.setMonthlyCap('google', 3000)
-    this.ledger.setMonthlyCap('serpapi', 3000)
-    this.ledger.setMonthlyCap('serper', 2500)
-    this.ledger.setMonthlyCap('yandex', 100)
-    this.ledger.setMonthlyCap('brave', 2000)
-    this.ledger.setMonthlyCap('serphouse', 400)
-    this.ledger.setMonthlyCap('qualityporn', 9000)
-    this.ledger.setMonthlyCap('apify', 1428) // No daily cap
+    this.ledger.setMonthlyCap('google', Number(this.env.GOOGLE_MONTHLY_CAP) || 3000)
+    this.ledger.setMonthlyCap('serpapi', Number(this.env.SERPAPI_MONTHLY_CAP) || 3000)
+    this.ledger.setMonthlyCap('serper', Number(this.env.SERPER_MONTHLY_CAP) || 2500)
+    this.ledger.setMonthlyCap('yandex', Number(this.env.YANDEX_MONTHLY_CAP) || 100)
+    this.ledger.setMonthlyCap('brave', Number(this.env.BRAVE_MONTHLY_CAP) || 2000)
+    this.ledger.setMonthlyCap('serphouse', Number(this.env.SERPHOUSE_MONTHLY_CAP) || 400)
+    this.ledger.setMonthlyCap('qualityporn', Number(this.env.QUALITYPORN_MONTHLY_CAP) || 9000)
+    this.ledger.setMonthlyCap('apify', Number(this.env.APIFY_MONTHLY_CAP) || 1428) // No daily cap
 
     // New provider caps
-    this.ledger.setMonthlyCap('pornlinks', 1000)
-    this.ledger.setMonthlyCap('pornhub', 1000)
-    this.ledger.setMonthlyCap('pureporn', 1000)
-    this.ledger.setMonthlyCap('xnxx', 100) // Hard cap: 100/month
+    this.ledger.setMonthlyCap('pornlinks', Number(this.env.PORNLINKS_MONTHLY_CAP) || 1000)
+    this.ledger.setMonthlyCap('pornhub', Number(this.env.PORNHUB_MONTHLY_CAP) || 1000)
+    this.ledger.setMonthlyCap('pureporn', Number(this.env.PUREPORN_MONTHLY_CAP) || 1000)
+    this.ledger.setMonthlyCap('xnxx', Number(this.env.XNXX_MONTHLY_CAP) || 100) // Hard cap: 100/month
+    this.ledger.setMonthlyCap('seznam', Number(this.env.SEZNAM_MONTHLY_CAP) || 200)
 
     // Scrapers and adapters have no caps
   }
@@ -111,8 +112,8 @@ export class SearchService {
       pornlinks: new PornlinksProvider(),
       pornhub: new PornhubProvider(),
       pureporn: new PurepornProvider(),
-      xnxx: new XnxxProvider()
-      // seznam: new SeznamProvider() // Disabled - API endpoint doesn't exist
+      xnxx: new XnxxProvider(),
+      seznam: new SeznamProvider()
     }
   }
 

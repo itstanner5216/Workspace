@@ -3,7 +3,7 @@ export const PORTAL_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Jack Portal</title>
+  <title>Jack'D - Advanced Search Portal</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,7 +12,7 @@ export const PORTAL_HTML = `<!DOCTYPE html>
   <style>
     :root {
       --bg:#0b0b0c; --panel:#141416; --panel-2:#1a1b1e; --muted:#9aa0a6; --txt:#e9eaee;
-      --accent:#3b82f6; --accent-2:#2563eb; --ok:#22c55e; --bad:#ef4444; --radius:14px;
+      --accent:#c8102e; --accent-2:#b91c1c; --ok:#22c55e; --bad:#ef4444; --radius:14px;
       --safe-area-inset-top: env(safe-area-inset-top, 0px);
       --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
       --safe-area-inset-left: env(safe-area-inset-left, 0px);
@@ -34,10 +34,11 @@ export const PORTAL_HTML = `<!DOCTYPE html>
       position:sticky;top:0;z-index:5;
       background:#0f1012cc;backdrop-filter:saturate(120%) blur(6px);
       padding:calc(14px + var(--safe-area-inset-top)) 16px 14px;
-      border-bottom:1px solid #1f2024;
+      border-bottom:2px solid var(--accent);
+      box-shadow:0 0 20px rgba(200,16,46,0.1);
     }
 
-    h1{margin:0;font-size:20px;font-weight:650}
+    h1{margin:0;font-size:20px;font-weight:650;color:var(--accent);text-shadow:0 0 10px rgba(200,16,46,0.3)}
 
     main{
       padding:16px;max-width:1100px;margin:0 auto;
@@ -45,8 +46,8 @@ export const PORTAL_HTML = `<!DOCTYPE html>
       padding-right: max(16px, var(--safe-area-inset-right));
     }
 
-    .panel{background:var(--panel);border:1px solid #1f2024;border-radius:var(--radius);padding:16px}
-    .title{font-weight:700;font-size:22px;margin:0 0 10px}
+    .panel{background:var(--panel);border:1px solid #1f2024;border-top:2px solid var(--accent);border-radius:var(--radius);padding:16px;box-shadow:0 4px 12px rgba(200,16,46,0.08)}
+    .title{font-weight:700;font-size:22px;margin:0 0 10px;color:var(--accent)}
 
     .row{display:grid;gap:16px;grid-template-columns:1fr 1fr}
     @media (max-width:720px){.row{grid-template-columns:1fr}}
@@ -88,19 +89,31 @@ export const PORTAL_HTML = `<!DOCTYPE html>
 
     .meta{color:var(--muted);font-size:13px}
 
-    a.link{color:#9cc4ff;text-decoration:none}
+    a.link{color:#ff6b6b;text-decoration:none}
     a.link:hover{text-decoration:underline}
+
+    .collapsible-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:12px 0;border-bottom:1px solid #2a2c31;margin-bottom:12px;user-select:none}
+    .collapsible-header h3{margin:0;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent)}
+    .collapsible-chevron{transition:transform 0.3s ease;color:var(--accent);font-weight:bold}
+    .collapsible-header.collapsed .collapsible-chevron{transform:rotate(-90deg)}
+    .collapsible-content{max-height:500px;overflow:hidden;transition:max-height 0.3s ease;opacity:1}
+    .collapsible-content.collapsed{max-height:0;opacity:0}
 
     .status{
       position:sticky;bottom:0;margin-top:18px;
       text-align:right;color:var(--muted);font-size:12px;
-      padding-bottom: var(--safe-area-inset-bottom);
+      padding:12px;border-radius:8px;background:var(--panel);border:1px solid #2a2c31;
     }
+    .status.ready{color:var(--ok);border-color:var(--ok)}
+    .status.searching{color:var(--accent);border-color:var(--accent);animation:pulse 1.5s infinite}
+    .status.done{color:var(--ok);border-color:var(--ok)}
+    .status.error{color:var(--bad);border-color:var(--bad)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
   </style>
 </head>
 <body>
   <header role="banner">
-    <h1>Jack Portal</h1>
+    <h1>Jack'D</h1>
   </header>
   <main id="main" role="main">
     <div class="panel">
@@ -110,6 +123,12 @@ export const PORTAL_HTML = `<!DOCTYPE html>
           <label for="q">Search Query</label>
           <input type="text" id="q" name="q" placeholder="Enter search terms..." aria-label="Search query">
         </div>
+
+        <div class="collapsible-header">
+          <h3>Advanced Filters</h3>
+          <span class="collapsible-chevron">▼</span>
+        </div>
+        <div class="collapsible-content">
         <div class="row">
           <div>
             <label for="modeSel">Search Mode</label>
@@ -145,17 +164,19 @@ export const PORTAL_HTML = `<!DOCTYPE html>
             </select>
           </div>
         </div>
+        </div>
+
         <div class="actions">
           <button type="submit" id="goBtn">Search</button>
         </div>
       </form>
     </div>
-    <div id="results" class="grid" aria-live="polite"></div>
-    <div id="status" class="status">Ready</div>
+    <div id="resultsContainer" class="grid"></div>
+    <div class="status ready" id="status">Ready</div>
   </main>
 
   <script>
-    // Basic client-side JavaScript for the search interface
+    // Jack'D Advanced Search Interface with Collapsible Filters
     const searchForm = document.getElementById('searchForm');
     const qInput = document.getElementById('q');
     const modeSel = document.getElementById('modeSel');
@@ -164,7 +185,35 @@ export const PORTAL_HTML = `<!DOCTYPE html>
     const providerSel = document.getElementById('provider');
     const resultsDiv = document.getElementById('results');
     const statusDiv = document.getElementById('status');
+    const collapsibleHeader = document.querySelector('.collapsible-header');
+    const collapsibleContent = document.querySelector('.collapsible-content');
+    const collapsibleChevron = document.querySelector('.collapsible-chevron');
 
+    // Collapsible filters toggle
+    if (collapsibleHeader) {
+      collapsibleHeader.addEventListener('click', () => {
+        collapsibleHeader.classList.toggle('collapsed');
+        collapsibleContent.classList.toggle('collapsed');
+        collapsibleChevron.classList.toggle('collapsed');
+      });
+    }
+
+    // Status indicator state management
+    function updateStatus(state) {
+      statusDiv.className = 'status ' + state;
+      const statusTexts = {
+        ready: 'Ready to search',
+        searching: 'Searching...',
+        done: 'Search complete',
+        error: 'Search failed'
+      };
+      statusDiv.textContent = statusTexts[state] || state;
+    }
+
+    // Initialize status to ready
+    updateStatus('ready');
+
+    // Form submission handler
     searchForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -174,7 +223,7 @@ export const PORTAL_HTML = `<!DOCTYPE html>
         return;
       }
 
-      statusDiv.textContent = 'Searching...';
+      updateStatus('searching');
 
       try {
         const params = new URLSearchParams({
@@ -202,11 +251,11 @@ export const PORTAL_HTML = `<!DOCTYPE html>
           </div>
         \`).join('');
 
-        statusDiv.textContent = \`Found \${data.results?.length || 0} results\`;
+        updateStatus('done');
 
       } catch (error) {
         console.error('Search error:', error);
-        statusDiv.textContent = 'Search failed';
+        updateStatus('error');
         resultsDiv.innerHTML = \`<div class="card visible" style="color: var(--bad)">Error: \${error.message}</div>\`;
       }
     });

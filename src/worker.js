@@ -112,9 +112,9 @@ export default {
       }
 
       // Serve static HTML for all other routes
-      const htmlResponse = new Response('Hello World', {
+      const htmlResponse = new Response(PORTAL_HTML, {
         headers: {
-          'Content-Type': 'text/plain',
+          'Content-Type': 'text/html; charset=utf-8',
           'X-Request-ID': requestId,
           'X-Response-Time': `${Date.now() - startTime}ms`,
           'Cache-Control': 'public, max-age=300' // Cache HTML for 5 minutes

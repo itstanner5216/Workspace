@@ -2,15 +2,15 @@ import {
   GoogleProvider,
   SerpApiProvider,
   SerperProvider,
-  YandexProvider,
   BraveProvider,
-  SerpHouseProvider,
   AdultMediaProvider,
   QualityPornProvider,
   ApifyProvider,
-  ScrapersProvider,
-  AdaptersProvider,
-  SeznamProvider
+  SeznamProvider,
+  PornhubProvider,
+  XNXXProvider,
+  PurepornProvider,
+  PornlinksProvider
 } from './sources/index.js'
 import { ProviderLedger } from './provider-ledger.js'
 import { AdapterRegistry } from './adapter-registry.js'
@@ -30,37 +30,23 @@ export class SearchService {
     // Create provider instances
     this.providers = this._createProviderInstances()
 
-    // Define chains by mode
+    // Define chains by mode - TESTING WITH WORKING PROVIDER
     this.chains = {
       normal: {
-        google_slice: ['google', 'serpapi', 'seznam', 'adapters_scrapers_parallel', 'apify'],
-        adult_slice: ['adultmedia', 'qualityporn', 'adapters_scrapers_parallel', 'apify'],
-        adapters_slice: ['adapters_parallel', 'apify'],
-        scrapers_slice: ['scrapers_parallel', 'apify']
+        test_slice: ['xnxx']
       },
       deep_niche: {
-        serper_slice: ['serper', 'yandex', 'brave', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
-        adapters_slice: ['adapters_parallel', 'apify'],
-        scrapers_slice: ['scrapers_parallel', 'apify'],
-        adultmedia_slice: ['adultmedia', 'qualityporn', 'adapters_scrapers_parallel', 'apify'],
-        qualityporn_slice: ['qualityporn', 'adapters_scrapers_parallel', 'apify']
+        test_slice: ['xnxx']
       }
     }
 
     // Slice weights by mode
     this.sliceWeights = {
       normal: {
-        google_slice: 0.50,
-        adult_slice: 0.30,
-        adapters_slice: 0.10,
-        scrapers_slice: 0.10
+        test_slice: 1.0
       },
       deep_niche: {
-        serper_slice: 0.40,
-        adapters_slice: 0.15,
-        scrapers_slice: 0.15,
-        adultmedia_slice: 0.15,
-        qualityporn_slice: 0.15
+        test_slice: 1.0
       }
     }
   }
@@ -82,14 +68,8 @@ export class SearchService {
     this.ledger.setDailyCap('serper', 83) // 2500/30 = ~83.33
     this.ledger.setMonthlyCap('serper', 2500)
 
-    this.ledger.setDailyCap('yandex', 3) // 100/30 = ~3.33
-    this.ledger.setMonthlyCap('yandex', 100)
-
     this.ledger.setDailyCap('brave', 66) // 2000/30 = ~66.67
     this.ledger.setMonthlyCap('brave', 2000)
-
-    this.ledger.setDailyCap('serphouse', 13) // 400/30 = ~13.33
-    this.ledger.setMonthlyCap('serphouse', 400)
 
     this.ledger.setDailyCap('adultmedia', 50) // ~50/day requests
     this.ledger.setMonthlyCap('adultmedia', 1500) // requests per month
@@ -99,9 +79,19 @@ export class SearchService {
     this.ledger.setDailyCap('qualityporn', 300)
     this.ledger.setMonthlyCap('qualityporn', 9000)
 
-    this.ledger.setMonthlyCap('apify', 1428) // No daily cap
+    this.ledger.setDailyCap('pornhub', 300)
+    this.ledger.setMonthlyCap('pornhub', 9000)
 
-    // Scrapers and adapters have no caps
+    this.ledger.setDailyCap('xnxx', 300)
+    this.ledger.setMonthlyCap('xnxx', 9000)
+
+    this.ledger.setDailyCap('pureporn', 300)
+    this.ledger.setMonthlyCap('pureporn', 9000)
+
+    this.ledger.setDailyCap('pornlinks', 300)
+    this.ledger.setMonthlyCap('pornlinks', 9000)
+
+    this.ledger.setMonthlyCap('apify', 1428) // No daily cap
   }
 
   /**
@@ -112,15 +102,15 @@ export class SearchService {
       google: new GoogleProvider(),
       serpapi: new SerpApiProvider(),
       serper: new SerperProvider(),
-      yandex: new YandexProvider(),
       brave: new BraveProvider(),
-      serphouse: new SerpHouseProvider(),
       adultmedia: new AdultMediaProvider(),
       qualityporn: new QualityPornProvider(),
       apify: new ApifyProvider(),
-      scrapers: new ScrapersProvider(),
-      adapters: new AdaptersProvider(),
-      seznam: new SeznamProvider()
+      seznam: new SeznamProvider(),
+      pornhub: new PornhubProvider(),
+      xnxx: new XNXXProvider(),
+      pureporn: new PurepornProvider(),
+      pornlinks: new PornlinksProvider()
     }
   }
 
@@ -276,22 +266,16 @@ export class SearchService {
    * Execute provider in chain with cap checking
    */
   async executeProviderInChain(providerName, query, options) {
-    // Handle special parallel cases
-    if (providerName === 'adapters_scrapers_parallel') {
-      return await this.executeParallel(['adapters', 'scrapers'], query, options)
-    }
-
-    if (providerName === 'adapters_parallel') {
-      return await this.executeParallel(['adapters'], query, options)
-    }
-
-    if (providerName === 'scrapers_parallel') {
-      return await this.executeParallel(['scrapers'], query, options)
-    }
-
     // Check provider health and caps
     if (!this.ledger.isProviderHealthy(providerName)) {
       this.ledger.setLastSkipReason(providerName, 'unhealthy')
+      return []
+    }
+
+    // Check for required API keys - Skip validation for known working providers
+    const skipKeyValidation = ['serper', 'brave', 'google', 'serpapi', 'adultmedia', 'apify']
+    if (!skipKeyValidation.includes(providerName) && !this._hasValidApiKey(providerName)) {
+      this.ledger.setLastSkipReason(providerName, 'missing_api_key')
       return []
     }
 

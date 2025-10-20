@@ -13,7 +13,7 @@ console.log('Google CSE: TTL=24h (86400 seconds)');
 console.log('');
 
 console.log('=== PROVIDER CONFIGURATIONS ===');
-const providers = ['seznam', 'adultmedia', 'google', 'yandex', 'serphouse'];
+const providers = ['seznam', 'adultmedia', 'google', 'yandex'];
 providers.forEach(name => {
   const provider = service.providers[name];
   if (provider) {

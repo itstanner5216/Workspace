@@ -241,12 +241,13 @@ export const PORTAL_HTML = `<!DOCTYPE html>
           throw new Error(data.error);
         }
 
-        // Display results
-        resultsDiv.innerHTML = (data.results || []).map(result => \`
+        // Display results - handle nested results structure
+        const resultsList = data.results?.results || data.results || [];
+        resultsDiv.innerHTML = resultsList.map(result => \`
           <div class="card visible">
-            <div><strong>\${result.title}</strong></div>
-            <div class="meta">Source: \${result.source} | Score: \${result.score}</div>
-            <div>\${result.snippet}</div>
+            <div><strong>\${result.title || 'Untitled'}</strong></div>
+            <div class="meta">Source: \${result.source || 'Unknown'} | Score: \${result.score || 'N/A'}</div>
+            <div>\${result.snippet || result.description || 'No description available'}</div>
             <div><a class="link" href="\${result.url}" target="_blank" rel="noopener">View Result</a></div>
           </div>
         \`).join('');

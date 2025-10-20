@@ -20,14 +20,14 @@ export class ApifyProvider {
     if (ledger) {
       const state = ledger.getProviderState('apify')
       if (state.monthlyUsed >= this.monthlyCap) {
-        ledger.markQuotaExceeded('apify')
+        ledger.markQuotaExceeded('apify', this.getNextMonthlyReset())
         throw new Error('QUOTA_EXCEEDED_MONTHLY')
       }
     }
 
     try {
       const runParams = {
-        queries: [query],
+        queries: query,
         maxPagesPerQuery: 1,
         resultsPerPage: Math.min(options.limit || 10, this.batchSize),
         languageCode: 'en',
@@ -40,8 +40,8 @@ export class ApifyProvider {
         runParams.dateRange = `d${days}`
       }
 
-      // Step 1: Start the actor run
-      const runResponse = await fetch(`${this.baseUrl}/acts/apify~google-search-scraper/runs?token=${apiKey}`, {
+      // Use synchronous endpoint to avoid 400 errors
+      const response = await fetch(`${this.baseUrl}/acts/apify~google-search-scraper/run-sync-get-dataset-items?token=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -51,35 +51,24 @@ export class ApifyProvider {
         cf: { timeout: 30000 }
       })
 
-      if (!runResponse.ok) {
-        if (runResponse.status === 429) {
-          if (ledger) ledger.markQuotaExceeded('apify')
-          throw new Error('QUOTA_EXCEEDED')
+      if (!response.ok) {
+        if (response.status === 429) {
+          if (ledger) ledger.markQuotaExceeded('apify', this.getNextMonthlyReset())
+          throw new Error('RATE_LIMIT')
         }
-        throw new Error(`Apify run error: ${runResponse.status} - URL: ${this.baseUrl}/acts/apify~google-search-scraper/runs?token=[REDACTED]`)
+        if (response.status === 400 || response.status === 422) {
+          throw new Error('BAD_PARAMS')
+        }
+        if (response.status === 404) {
+          throw new Error('BAD_HOST')
+        }
+        if (response.status >= 500) {
+          throw new Error('UPSTREAM_ERROR')
+        }
+        throw new Error(`Apify error: ${response.status} - Query: ${query}`)
       }
 
-      const runData = await runResponse.json()
-      const runId = runData.data?.id
-
-      if (!runId) {
-        throw new Error('Apify run creation failed - no run ID returned')
-      }
-
-      // Step 2: Wait for run to complete and get dataset
-      const datasetResponse = await fetch(`${this.baseUrl}/acts/apify~google-search-scraper/runs/${runId}/dataset/items?token=${apiKey}`, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Jack-Portal/2.0.0'
-        },
-        cf: { timeout: 30000 }
-      })
-
-      if (!datasetResponse.ok) {
-        throw new Error(`Apify dataset error: ${datasetResponse.status} - URL: ${this.baseUrl}/acts/apify~google-search-scraper/runs/${runId}/dataset/items?token=[REDACTED]`)
-      }
-
-      const results = await datasetResponse.json()
+      const results = await response.json()
 
       if (ledger) {
         ledger.recordSuccess('apify')
@@ -90,8 +79,10 @@ export class ApifyProvider {
 
     } catch (error) {
       if (ledger) {
-        if (error.message.includes('QUOTA')) {
-          ledger.markQuotaExceeded('apify')
+        if (error.message.includes('QUOTA') || error.message.includes('RATE_LIMIT')) {
+          ledger.markQuotaExceeded('apify', this.getNextMonthlyReset())
+        } else if (error.message.includes('UPSTREAM_ERROR') || error.message.includes('5xx')) {
+          ledger.recordError('apify', '5xx')
         } else {
           ledger.recordError('apify', '5xx')
         }

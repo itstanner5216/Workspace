@@ -4,10 +4,9 @@ import { SerperProvider } from './src/lib/sources/serper.js';
 import { YandexProvider } from './src/lib/sources/yandex.js';
 import { BraveProvider } from './src/lib/sources/brave.js';
 import { SerpHouseProvider } from './src/lib/sources/serphouse.js';
-import { AdultMediaProvider } from './src/lib/sources/adultmedia.js';
 import { QualityPornProvider } from './src/lib/sources/qualityporn.js';
 import { ApifyProvider } from './src/lib/sources/apify.js';
-import { SeznamProvider } from './src/lib/sources/seznam.js';
+// import { SeznamProvider } from './src/lib/sources/seznam.js'; // Disabled - API endpoint doesn't exist
 
 // Mock environment with API keys
 const mockEnv = {
@@ -19,7 +18,7 @@ const mockEnv = {
   BRAVE_API_KEY: 'your_brave_api_key_here',
   SERPHOUSE_KEY: 'your_serphouse_key_here',
   RAPIDAPI_KEY: 'your_rapidapi_key_here',
-  APIFY_TOKEN: 'your_apify_api_token_here'
+  APIFY_TOKEN: 'apify_api_E8LwH5bogQjYio2Lhh0MROXRu5edf94Afryb'
 };
 
 // Mock ledger
@@ -41,10 +40,9 @@ const providers = [
   { name: 'Yandex/SERPWOW', instance: new YandexProvider() },
   { name: 'Brave', instance: new BraveProvider() },
   { name: 'SerpHouse', instance: new SerpHouseProvider() },
-  { name: 'AdultMedia', instance: new AdultMediaProvider() },
   { name: 'QualityPorn', instance: new QualityPornProvider() },
-  { name: 'Apify', instance: new ApifyProvider() },
-  { name: 'Seznam', instance: new SeznamProvider() }
+  { name: 'Apify', instance: new ApifyProvider() }
+  // { name: 'Seznam', instance: new SeznamProvider() } // Disabled - API endpoint doesn't exist
 ];
 
 async function testProvider(provider) {

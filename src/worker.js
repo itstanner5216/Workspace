@@ -124,6 +124,18 @@ export default {
         return response
       }
 
+      // Handle provider self-test-all endpoint (alias for comprehensive testing)
+      if (url.pathname === '/api/provider-selftest-all') {
+        const response = await handleProviderSelfTest(request, env)
+        logRequestEnd({
+          requestId,
+          method,
+          path: url.pathname,
+          ip
+        }, Date.now() - startTime, response.status)
+        return response
+      }
+
       // Serve static HTML for all other routes
       const htmlResponse = new Response('Hello World', {
         headers: {

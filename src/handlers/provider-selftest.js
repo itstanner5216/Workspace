@@ -10,12 +10,15 @@ import {
   YandexProvider,
   BraveProvider,
   SerpHouseProvider,
-  AdultMediaProvider,
   QualityPornProvider,
   ApifyProvider,
   ScrapersProvider,
   AdaptersProvider,
-  SeznamProvider
+  PornlinksProvider,
+  PornhubProvider,
+  PurepornProvider,
+  XnxxProvider
+  // SeznamProvider // Disabled - API endpoint doesn't exist
 } from '../lib/sources/index.js'
 import { ProviderLedger } from '../lib/provider-ledger.js'
 import { createSuccessResponse, createErrorResponse } from '../lib/response.js'
@@ -71,21 +74,16 @@ const PROVIDER_CONFIGS = {
     headers: [],
     queryParams: ['api_token', 'q', 'num_results', 'domain', 'lang', 'device', 'serp_type']
   },
-  adultmedia: {
-    required: ['RAPIDAPI_KEY'],
-    headers: ['x-rapidapi-key', 'x-rapidapi-host'],
-    queryParams: ['q', 'limit']
-  },
   qualityporn: {
     required: ['RAPIDAPI_KEY'],
     headers: ['x-rapidapi-key', 'x-rapidapi-host'],
     queryParams: []
   },
-  seznam: {
-    required: ['RAPIDAPI_KEY'],
-    headers: ['x-rapidapi-key', 'x-rapidapi-host'],
-    queryParams: ['q', 'count', 'format', 'lang']
-  },
+  // seznam: { // Disabled - API endpoint doesn't exist
+  //   required: ['RAPIDAPI_KEY'],
+  //   headers: ['x-rapidapi-key', 'x-rapidapi-host'],
+  //   queryParams: ['q', 'count', 'format', 'lang']
+  // },
   apify: {
     required: ['APIFY_TOKEN'],
     headers: [],
@@ -99,6 +97,26 @@ const PROVIDER_CONFIGS = {
   adapters: {
     required: ['ADAPTERS_API_KEY'],
     headers: ['Authorization'],
+    queryParams: []
+  },
+  pornlinks: {
+    required: ['PORNLINKS_API_KEY'],
+    headers: ['x-rapidapi-key', 'x-rapidapi-host'],
+    queryParams: ['q']
+  },
+  pornhub: {
+    required: ['PORNHUB_API_KEY'],
+    headers: ['x-rapidapi-key', 'x-rapidapi-host'],
+    queryParams: []
+  },
+  pureporn: {
+    required: ['PUREPORN_API_KEY'],
+    headers: ['x-rapidapi-key', 'x-rapidapi-host'],
+    queryParams: []
+  },
+  xnxx: {
+    required: ['XNXX_API_KEY'],
+    headers: ['x-rapidapi-key', 'x-rapidapi-host'],
     queryParams: []
   }
 }
@@ -181,12 +199,15 @@ function createProviderInstances() {
     yandex: new YandexProvider(),
     brave: new BraveProvider(),
     serphouse: new SerpHouseProvider(),
-    adultmedia: new AdultMediaProvider(),
     qualityporn: new QualityPornProvider(),
     apify: new ApifyProvider(),
     scrapers: new ScrapersProvider(),
     adapters: new AdaptersProvider(),
-    seznam: new SeznamProvider()
+    pornlinks: new PornlinksProvider(),
+    pornhub: new PornhubProvider(),
+    pureporn: new PurepornProvider(),
+    xnxx: new XnxxProvider()
+    // seznam: new SeznamProvider() // Disabled - API endpoint doesn't exist
   }
 }
 
@@ -314,6 +335,7 @@ function validateProviderConfig(providerName, env) {
   const missing = []
   const present = []
 
+  // Standard validation for other providers
   for (const envVar of config.required) {
     const value = env[envVar]
     if (!value || value === `your_${envVar.toLowerCase()}_here` || value.includes('your_')) {
@@ -345,6 +367,17 @@ function mapProviderError(error, providerName) {
   const urlMatch = originalMessage.match(/URL:\s*(.+)/)
   if (urlMatch) {
     last_attempted_url = urlMatch[1]
+  }
+
+  // Check if the error message is already a canonical error code
+  const canonicalCodes = Object.values(ERROR_CODES)
+  if (canonicalCodes.includes(originalMessage)) {
+    return {
+      code: originalMessage,
+      explanation: `Provider returned canonical error: ${originalMessage}`,
+      next_action: 'Check provider-specific error details',
+      last_attempted_url
+    }
   }
 
   // Authentication errors

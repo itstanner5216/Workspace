@@ -1,56 +1,63 @@
 export class QualityPornProvider {
   constructor() {
     this.name = 'QualityPorn'
-    this.baseUrl = 'https://quality-porn.p.rapidapi.com/docs'
+    this.baseUrl = 'https://quality-porn.p.rapidapi.com'
     this.version = '1.0.0'
-    this.dailyCap = 300
     this.monthlyCap = 9000
     this.ttl = 24 * 60 * 60 // 24 hours
     this.batchSize = 20
   }
 
   async search(query, options, env) {
-    const apiKey = env.RAPIDAPI_KEY
+    const apiKey = env.QUALITYPORN_API_KEY
 
     if (!apiKey) {
-      console.warn('RapidAPI key not configured')
+      console.warn('QualityPorn API key not configured')
       return []
     }
 
     const ledger = options.ledger
     if (ledger) {
       const state = ledger.getProviderState('qualityporn')
-      if (state.dailyUsed >= this.dailyCap) {
-        ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
-        throw new Error('QUOTA_EXCEEDED_DAILY')
+      if (state.monthlyUsed >= this.monthlyCap) {
+        ledger.markQuotaExceeded('qualityporn')
+        throw new Error('QUOTA_EXCEEDED_MONTHLY')
       }
     }
 
     try {
-      const params = new URLSearchParams({
+      const requestBody = {
         q: query,
         limit: Math.min(options.limit || 10, this.batchSize)
-      })
-
-      if (options.fresh && options.fresh !== 'all') {
-        const days = options.fresh.replace('d', '')
-        params.append('freshness', `d${days}`)
       }
 
-      const response = await fetch(`${this.baseUrl}?${params}`, {
-        method: 'GET',
+      const response = await fetch(`${this.baseUrl}/search`, {
+        method: 'POST',
         headers: {
-          'x-rapidapi-host': 'quality-porn.p.rapidapi.com',
-          'x-rapidapi-key': apiKey,
-          'User-Agent': 'Jack-Portal/2.0.0'
+          'X-RapidAPI-Key': apiKey,
+          'X-RapidAPI-Host': 'quality-porn.p.rapidapi.com',
+          'Content-Type': 'application/json'
         },
-        cf: { timeout: 10000 }
+        body: JSON.stringify(requestBody),
+        cf: {
+          cacheTtl: this.ttl,
+          cacheEverything: true
+        }
       })
 
       if (!response.ok) {
+        if (response.status === 400) {
+          throw new Error('BAD_PARAMS')
+        }
+        if (response.status === 404) {
+          throw new Error('BAD_HOST')
+        }
         if (response.status === 429) {
-          if (ledger) ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
-          throw new Error('QUOTA_EXCEEDED')
+          if (ledger) ledger.markQuotaExceeded('qualityporn')
+          throw new Error('RATE_LIMIT')
+        }
+        if (response.status >= 500) {
+          throw new Error('UPSTREAM_ERROR')
         }
         throw new Error(`QualityPorn error: ${response.status}`)
       }
@@ -59,7 +66,7 @@ export class QualityPornProvider {
 
       if (ledger) {
         ledger.recordSuccess('qualityporn')
-        ledger.incrementDailyUsed('qualityporn')
+        ledger.incrementMonthlyUsed('qualityporn')
       }
 
       return this.normalizeResults(data.results || [], options)
@@ -67,9 +74,13 @@ export class QualityPornProvider {
     } catch (error) {
       if (ledger) {
         if (error.message.includes('QUOTA')) {
-          ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
-        } else {
+          ledger.markQuotaExceeded('qualityporn')
+        } else if (error.message.includes('RATE_LIMIT')) {
+          ledger.markQuotaExceeded('qualityporn')
+        } else if (error.message.includes('UPSTREAM_ERROR') || error.message.includes('5')) {
           ledger.recordError('qualityporn', '5xx')
+        } else {
+          ledger.recordError('qualityporn', '4xx')
         }
       }
       throw error
@@ -91,15 +102,5 @@ export class QualityPornProvider {
         tags: item.tags || []
       }
     }))
-  }
-
-  getNextDailyReset() {
-    const now = new Date()
-    const nextReset = new Date(now)
-    nextReset.setUTCHours(4, 0, 0, 0)
-    if (nextReset <= now) {
-      nextReset.setDate(nextReset.getDate() + 1)
-    }
-    return nextReset.toISOString()
   }
 }

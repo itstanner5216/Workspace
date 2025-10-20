@@ -135,7 +135,7 @@ wrangler dev --local --var-file=.dev.vars
 ## [2.0.0] - 2025-08-15
 
 ### Initial Production Release
-- Multi-provider search (Google, Brave, Yandex, AdultMedia)
+- Multi-provider search (Google, Brave, Yandex, QualityPorn)
 - KV-based caching with 30-minute TTL
 - Rate limiting and input validation
 - CORS support and response compression

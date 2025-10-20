@@ -31,57 +31,90 @@ export class SerpHouseProvider {
       }
     }
 
-    try {
-      const params = new URLSearchParams({
-        api_token: apiKey,
-        q: query,
-        num_results: Math.min(options.limit || 10, this.batchSize),
-        domain: 'google.com',
-        lang: 'en',
-        device: 'desktop',
-        serp_type: 'web'
-      })
+    // Retry logic for network errors only
+    let lastError = null
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const params = new URLSearchParams({
+          api_token: apiKey,
+          q: query,
+          num_results: Math.min(options.limit || 10, this.batchSize),
+          domain: 'google.com',
+          lang: 'en',
+          device: 'desktop',
+          serp_type: 'web'
+        })
 
-      if (options.fresh && options.fresh !== 'all') {
-        const days = options.fresh.replace('d', '')
-        params.append('time_period', `past_${days}_days`)
-      }
-
-      const response = await fetch(`${this.baseUrl}?${params}`, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Jack-Portal/2.0.0'
-        },
-        cf: { timeout: 15000 }
-      })
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          if (ledger) ledger.markQuotaExceeded('serphouse', this.getNextDailyReset())
-          throw new Error('QUOTA_EXCEEDED')
+        if (options.fresh && options.fresh !== 'all') {
+          const days = options.fresh.replace('d', '')
+          params.append('time_period', `past_${days}_days`)
         }
-        throw new Error(`SerpHouse error: ${response.status} - URL: ${this.baseUrl}?${params.toString().replace(apiKey, '[REDACTED]')}`)
-      }
 
-      const data = await response.json()
+        const response = await fetch(`${this.baseUrl}?${params}`, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Jack-Portal/2.0.0'
+          },
+          cf: { timeout: 15000 }
+        })
 
-      if (ledger) {
-        ledger.recordSuccess('serphouse')
-        ledger.incrementDailyUsed('serphouse')
-      }
-
-      return this.normalizeResults(data.results || data || [], options)
-
-    } catch (error) {
-      if (ledger) {
-        if (error.message.includes('QUOTA')) {
-          ledger.markQuotaExceeded('serphouse', this.getNextDailyReset())
-        } else {
-          ledger.recordError('serphouse', '5xx')
+        if (!response.ok) {
+          if (response.status === 429) {
+            if (ledger) ledger.markQuotaExceeded('serphouse', this.getNextDailyReset())
+            throw new Error('RATE_LIMIT')
+          }
+          if (response.status === 400 || response.status === 422) {
+            throw new Error('BAD_PARAMS')
+          }
+          if (response.status === 404) {
+            throw new Error('BAD_HOST')
+          }
+          if (response.status >= 500) {
+            throw new Error('UPSTREAM_ERROR')
+          }
+          throw new Error(`SerpHouse error: ${response.status} - URL: ${this.baseUrl}?${params.toString().replace(apiKey, '[REDACTED]')}`)
         }
+
+        const data = await response.json()
+
+        if (ledger) {
+          ledger.recordSuccess('serphouse')
+          ledger.incrementDailyUsed('serphouse')
+        }
+
+        return this.normalizeResults(data.results || data || [], options)
+
+      } catch (error) {
+        lastError = error
+        
+        // Only retry on network errors, not HTTP errors
+        const isNetworkError = error.name === 'TypeError' || 
+                              error.message.includes('fetch') || 
+                              error.message.includes('network') ||
+                              error.message.includes('ECONNRESET') ||
+                              error.message.includes('ENOTFOUND')
+        
+        if (!isNetworkError || attempt === 1) {
+          // Not a network error or this was the second attempt
+          break
+        }
+        
+        // Wait a bit before retry
+        await new Promise(resolve => setTimeout(resolve, 1000))
       }
-      throw error
     }
+
+    // Handle final error
+    if (ledger) {
+      if (lastError.message.includes('QUOTA') || lastError.message.includes('RATE_LIMIT')) {
+        ledger.markQuotaExceeded('serphouse', this.getNextDailyReset())
+      } else if (lastError.message.includes('UPSTREAM_ERROR') || lastError.message.includes('5xx')) {
+        ledger.recordError('serphouse', '5xx')
+      } else {
+        ledger.recordError('serphouse', '5xx')
+      }
+    }
+    throw lastError
   }
 
   normalizeResults(results, options) {

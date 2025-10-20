@@ -5,12 +5,15 @@ import {
   YandexProvider,
   BraveProvider,
   SerpHouseProvider,
-  AdultMediaProvider,
   QualityPornProvider,
   ApifyProvider,
   ScrapersProvider,
   AdaptersProvider,
-  SeznamProvider
+  PornlinksProvider,
+  PornhubProvider,
+  PurepornProvider,
+  XnxxProvider
+  // SeznamProvider // Disabled - API endpoint doesn't exist
 } from './sources/index.js'
 import { ProviderLedger } from './provider-ledger.js'
 import { AdapterRegistry } from './adapter-registry.js'
@@ -33,17 +36,18 @@ export class SearchService {
     // Define chains by mode
     this.chains = {
       normal: {
-        google_slice: ['google', 'serpapi', 'seznam', 'adapters_scrapers_parallel', 'apify'],
-        adult_slice: ['adultmedia', 'qualityporn', 'adapters_scrapers_parallel', 'apify'],
+        google_slice: ['google', 'serpapi', /* 'seznam', */ 'adapters_scrapers_parallel', 'apify'], // Disabled - API endpoint doesn't exist
+        qualityporn_xnxx_slice: ['qualityporn', 'xnxx', 'pornlinks', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
+        pornhub_pureporn_slice: ['pornhub', 'pureporn', 'pornlinks', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
         adapters_slice: ['adapters_parallel', 'apify'],
         scrapers_slice: ['scrapers_parallel', 'apify']
       },
       deep_niche: {
-        serper_slice: ['serper', 'yandex', 'brave', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
+        serply_slice: ['serply', 'serper', 'brave', 'serphouse', 'pornlinks', 'adapters_scrapers_parallel', 'apify'],
+        qualityporn_xnxx_slice: ['qualityporn', 'xnxx', 'pornlinks', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
+        pornhub_pureporn_slice: ['pornhub', 'pureporn', 'pornlinks', 'serphouse', 'adapters_scrapers_parallel', 'apify'],
         adapters_slice: ['adapters_parallel', 'apify'],
-        scrapers_slice: ['scrapers_parallel', 'apify'],
-        adultmedia_slice: ['adultmedia', 'qualityporn', 'adapters_scrapers_parallel', 'apify'],
-        qualityporn_slice: ['qualityporn', 'adapters_scrapers_parallel', 'apify']
+        scrapers_slice: ['scrapers_parallel', 'apify']
       }
     }
 
@@ -51,16 +55,17 @@ export class SearchService {
     this.sliceWeights = {
       normal: {
         google_slice: 0.50,
-        adult_slice: 0.30,
+        qualityporn_xnxx_slice: 0.20,
+        pornhub_pureporn_slice: 0.20,
         adapters_slice: 0.10,
-        scrapers_slice: 0.10
+        scrapers_slice: 0.00 // Not used in normal mode weighting
       },
       deep_niche: {
-        serper_slice: 0.40,
-        adapters_slice: 0.15,
-        scrapers_slice: 0.15,
-        adultmedia_slice: 0.15,
-        qualityporn_slice: 0.15
+        serply_slice: 0.35,
+        qualityporn_xnxx_slice: 0.15,
+        pornhub_pureporn_slice: 0.25,
+        adapters_slice: 0.25,
+        scrapers_slice: 0.00 // Not used in deep niche mode weighting
       }
     }
   }
@@ -70,36 +75,20 @@ export class SearchService {
    */
   _initializeProviderCaps() {
     // Set caps in ledger
-    this.ledger.setDailyCap('google', 100)
     this.ledger.setMonthlyCap('google', 3000)
-
-    this.ledger.setDailyCap('serpapi', 100)
     this.ledger.setMonthlyCap('serpapi', 3000)
-
-    this.ledger.setDailyCap('seznam', 6) // 200/30 = ~6.67
-    this.ledger.setMonthlyCap('seznam', 200)
-
-    this.ledger.setDailyCap('serper', 83) // 2500/30 = ~83.33
     this.ledger.setMonthlyCap('serper', 2500)
-
-    this.ledger.setDailyCap('yandex', 3) // 100/30 = ~3.33
     this.ledger.setMonthlyCap('yandex', 100)
-
-    this.ledger.setDailyCap('brave', 66) // 2000/30 = ~66.67
     this.ledger.setMonthlyCap('brave', 2000)
-
-    this.ledger.setDailyCap('serphouse', 13) // 400/30 = ~13.33
     this.ledger.setMonthlyCap('serphouse', 400)
-
-    this.ledger.setDailyCap('adultmedia', 50) // ~50/day requests
-    this.ledger.setMonthlyCap('adultmedia', 1500) // requests per month
-    this.ledger.setRequestsDailyCap('adultmedia', 50) // 25 objects/request × 50 = 1250 objects
-    this.ledger.setObjectsDailyCap('adultmedia', 1250) // API's actual quota
-
-    this.ledger.setDailyCap('qualityporn', 300)
     this.ledger.setMonthlyCap('qualityporn', 9000)
-
     this.ledger.setMonthlyCap('apify', 1428) // No daily cap
+
+    // New provider caps
+    this.ledger.setMonthlyCap('pornlinks', 1000)
+    this.ledger.setMonthlyCap('pornhub', 1000)
+    this.ledger.setMonthlyCap('pureporn', 1000)
+    this.ledger.setMonthlyCap('xnxx', 100) // Hard cap: 100/month
 
     // Scrapers and adapters have no caps
   }
@@ -115,12 +104,15 @@ export class SearchService {
       yandex: new YandexProvider(),
       brave: new BraveProvider(),
       serphouse: new SerpHouseProvider(),
-      adultmedia: new AdultMediaProvider(),
       qualityporn: new QualityPornProvider(),
       apify: new ApifyProvider(),
       scrapers: new ScrapersProvider(),
       adapters: new AdaptersProvider(),
-      seznam: new SeznamProvider()
+      pornlinks: new PornlinksProvider(),
+      pornhub: new PornhubProvider(),
+      pureporn: new PurepornProvider(),
+      xnxx: new XnxxProvider()
+      // seznam: new SeznamProvider() // Disabled - API endpoint doesn't exist
     }
   }
 
@@ -297,20 +289,7 @@ export class SearchService {
 
     const state = this.ledger.getProviderState(providerName)
     
-    // Special handling for AdultMedia dual-cap system
-    if (providerName === 'adultmedia') {
-      if (state.requestsDailyCap && state.requestsDailyUsed >= state.requestsDailyCap) {
-        this.ledger.setLastSkipReason(providerName, 'requests_daily_cap_exceeded')
-        return []
-      }
-    } else {
-      // Standard cap checking for other providers
-      if (state.dailyCap && state.dailyUsed >= state.dailyCap) {
-        this.ledger.setLastSkipReason(providerName, 'daily_cap_exceeded')
-        return []
-      }
-    }
-
+    // Monthly cap checking only
     if (state.monthlyCap && state.monthlyUsed >= state.monthlyCap) {
       this.ledger.setLastSkipReason(providerName, 'monthly_cap_exceeded')
       return []
@@ -323,16 +302,8 @@ export class SearchService {
     try {
       const results = await provider.search(query, { ...options, ledger: this.ledger }, this.env)
 
-      // Record usage - AdultMedia handles its own dual-cap counters
-      if (providerName === 'adultmedia') {
-        // AdultMedia provider handles incrementRequestsDailyUsed and incrementObjectsDailyUsed
-        this.ledger.incrementMonthlyUsed(providerName)
-      } else if (providerName !== 'apify') { // Apify only has monthly cap
-        this.ledger.incrementDailyUsed(providerName)
-        this.ledger.incrementMonthlyUsed(providerName)
-      } else {
-        this.ledger.incrementMonthlyUsed(providerName)
-      }
+      // Record usage
+      this.ledger.incrementMonthlyUsed(providerName)
       this.ledger.recordSuccess(providerName)
 
       return results.map(result => ({

@@ -141,7 +141,6 @@ export const PORTAL_HTML = `<!DOCTYPE html>
               <option value="google">Google</option>
               <option value="brave">Brave</option>
               <option value="yandex">Yandex</option>
-              <option value="adultmedia">AdultMedia</option>
             </select>
           </div>
         </div>

@@ -27,7 +27,7 @@ Perform a search across multiple providers with intelligent caching.
 | `mode` | string | No | `normal` | Search mode: `normal`, `deep_niche` |
 | `fresh` | string | No | `d7` | Time filter: `d1`, `d7`, `d30`, `d365`, `all` |
 | `limit` | number | No | `10` | Results per provider (3-20) |
-| `provider` | string | No | `all` | Specific provider: `google`, `brave`, `yandex`, `adultmedia` |
+| `provider` | string | No | `all` | Specific provider: `google`, `brave`, `yandex`, `qualityporn` |
 | `site` | string | No | - | Domain restriction (e.g., `example.com`) |
 | `showThumbs` | boolean | No | `true` | Include thumbnails |
 | `safeMode` | boolean | No | `true` | Safe search filter |
@@ -167,7 +167,7 @@ Rate limit headers are included in all responses.
 - **Features:** Strong in Russian content, images
 - **Limitations:** Regional focus
 
-### AdultMedia Search
+### QualityPorn Search
 - **Engine:** Specialized adult content search
 - **Features:** Niche content discovery
 - **Limitations:** Requires specific API access
@@ -212,7 +212,6 @@ GOOGLE_API_KEY=your_google_api_key
 GOOGLE_CSE_ID=your_google_cse_id
 BRAVE_API_KEY=your_brave_api_key
 YANDEX_API_KEY=your_yandex_api_key
-ADULTMEDIA_API_KEY=your_adultmedia_api_key
 
 # Configuration
 LOG_LEVEL=INFO

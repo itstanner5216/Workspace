@@ -3,7 +3,7 @@ export const PORTAL_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Jack Portal</title>
+  <title>Jack'D - Advanced Search Portal</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,7 +12,7 @@ export const PORTAL_HTML = `<!DOCTYPE html>
   <style>
     :root {
       --bg:#0b0b0c; --panel:#141416; --panel-2:#1a1b1e; --muted:#9aa0a6; --txt:#e9eaee;
-      --accent:#3b82f6; --accent-2:#2563eb; --ok:#22c55e; --bad:#ef4444; --radius:14px;
+      --accent:#c8102e; --accent-2:#b91c1c; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b; --radius:14px;
       --safe-area-inset-top: env(safe-area-inset-top, 0px);
       --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
       --safe-area-inset-left: env(safe-area-inset-left, 0px);
@@ -32,12 +32,12 @@ export const PORTAL_HTML = `<!DOCTYPE html>
 
     header{
       position:sticky;top:0;z-index:5;
-      background:#0f1012cc;backdrop-filter:saturate(120%) blur(6px);
+      background:#0b0b0c;backdrop-filter:none;
       padding:calc(14px + var(--safe-area-inset-top)) 16px 14px;
       border-bottom:1px solid #1f2024;
     }
 
-    h1{margin:0;font-size:20px;font-weight:650}
+    h1{margin:0;font-size:20px;font-weight:650;color:var(--accent);text-shadow:0 0 12px rgba(200,16,46,0.3)}
 
     main{
       padding:16px;max-width:1100px;margin:0 auto;
@@ -46,7 +46,7 @@ export const PORTAL_HTML = `<!DOCTYPE html>
     }
 
     .panel{background:var(--panel);border:1px solid #1f2024;border-radius:var(--radius);padding:16px}
-    .title{font-weight:700;font-size:22px;margin:0 0 10px}
+    .title{font-weight:700;font-size:22px;margin:0 0 10px;color:var(--accent);text-shadow:0 0 8px rgba(200,16,46,0.2)}
 
     .row{display:grid;gap:16px;grid-template-columns:1fr 1fr}
     @media (max-width:720px){.row{grid-template-columns:1fr}}
@@ -93,15 +93,40 @@ export const PORTAL_HTML = `<!DOCTYPE html>
 
     .status{
       position:sticky;bottom:0;margin-top:18px;
-      text-align:right;color:var(--muted);font-size:12px;
+      text-align:right;font-size:12px;
       padding-bottom: var(--safe-area-inset-bottom);
+      font-weight:600;
     }
+    
+    .status.ready{color:var(--muted)}
+    .status.searching{color:var(--warn)}
+    .status.done{color:var(--ok)}
+    .status.error{color:var(--bad)}
+    
+    .collapsible-header{
+      display:flex;justify-content:space-between;align-items:center;
+      cursor:pointer;padding:12px;background:var(--panel-2);border-radius:10px;
+      border:1px solid #23252b;user-select:none;transition:all 0.2s ease;
+    }
+    
+    .collapsible-header:hover{background:#1f2024;border-color:var(--accent)}
+    
+    .collapsible-header.expanded{background:#1f2024;border-color:var(--accent)}
+    
+    .collapsible-content{
+      max-height:0;overflow:hidden;transition:max-height 0.3s ease;
+      border-left:2px solid var(--accent);margin-top:8px;padding-left:0;
+    }
+    
+    .collapsible-content.expanded{max-height:1000px}
+    
+    .collapsible-content > .row{margin-top:12px}
   </style>
 </head>
 <body>
   <header role="banner">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h1>Jack Portal</h1>
+      <h1><strong>Jack'D</strong></h1>
       <button id="authBtn" style="background: var(--accent-2); padding: 8px 14px; font-size: 13px;">Login</button>
     </div>
   </header>
@@ -166,64 +191,76 @@ export const PORTAL_HTML = `<!DOCTYPE html>
           <label for="q">Search Query</label>
           <input type="text" id="q" name="q" placeholder="Enter search terms..." aria-label="Search query">
         </div>
-        <div class="row">
-          <div>
-            <label for="modeSel">Search Mode</label>
-            <select id="modeSel" aria-label="Search mode">
-              <option value="normal">Normal</option>
-              <option value="deep_niche">Deep Niche</option>
-            </select>
+        
+        <!-- Advanced Filters Collapsible Section -->
+        <div style="margin-top: 16px;">
+          <div id="filtersToggle" class="collapsible-header">
+            <span>⚙️ Advanced Filters</span>
+            <span id="filtersChevron" style="font-size:16px">▼</span>
           </div>
-          <div>
-            <label for="freshSel">Freshness</label>
-            <select id="freshSel" aria-label="Content freshness">
-              <option value="d7">7 days</option>
-              <option value="m1">1 month</option>
-              <option value="m3">3 months</option>
-              <option value="y1">1 year</option>
-              <option value="all">All time</option>
-            </select>
+          
+          <div id="filtersContent" class="collapsible-content">
+            <div class="row">
+              <div>
+                <label for="modeSel">Search Mode</label>
+                <select id="modeSel" aria-label="Search mode">
+                  <option value="normal">Normal</option>
+                  <option value="deep_niche">Deep Niche</option>
+                </select>
+              </div>
+              <div>
+                <label for="freshSel">Freshness</label>
+                <select id="freshSel" aria-label="Content freshness">
+                  <option value="d7">7 days</option>
+                  <option value="m1">1 month</option>
+                  <option value="m3">3 months</option>
+                  <option value="y1">1 year</option>
+                  <option value="all">All time</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="limit">Results</label>
+                <input type="number" id="limit" value="10" min="3" max="20" aria-label="Number of results">
+              </div>
+              <div>
+                <label for="provider">Provider (optional)</label>
+                <select id="provider" aria-label="Search provider">
+                  <option value="">All Providers</option>
+                  <option value="google">Google</option>
+                  <option value="brave">Brave</option>
+                  <option value="yandex">Yandex</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="region">Region (optional - uses proxy)</label>
+                <select id="region" aria-label="Proxy region">
+                  <option value="">Auto-detect</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="UK">United Kingdom</option>
+                  <option value="DE">Germany</option>
+                  <option value="NL">Netherlands</option>
+                  <option value="BR">Brazil</option>
+                  <option value="AU">Australia</option>
+                  <option value="JP">Japan</option>
+                </select>
+              </div>
+              <div>
+                <label for="proxyType">Proxy Type</label>
+                <select id="proxyType" aria-label="Proxy type">
+                  <option value="residential">Residential (slower, undetectable)</option>
+                  <option value="datacenter">Datacenter (faster, detectable)</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="row">
-          <div>
-            <label for="limit">Results</label>
-            <input type="number" id="limit" value="10" min="3" max="20" aria-label="Number of results">
-          </div>
-          <div>
-            <label for="provider">Provider (optional)</label>
-            <select id="provider" aria-label="Search provider">
-              <option value="">All Providers</option>
-              <option value="google">Google</option>
-              <option value="brave">Brave</option>
-              <option value="yandex">Yandex</option>
-            </select>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label for="region">Region (optional - uses proxy)</label>
-            <select id="region" aria-label="Proxy region">
-              <option value="">Auto-detect</option>
-              <option value="US">United States</option>
-              <option value="CA">Canada</option>
-              <option value="UK">United Kingdom</option>
-              <option value="DE">Germany</option>
-              <option value="NL">Netherlands</option>
-              <option value="BR">Brazil</option>
-              <option value="AU">Australia</option>
-              <option value="JP">Japan</option>
-            </select>
-          </div>
-          <div>
-            <label for="proxyType">Proxy Type</label>
-            <select id="proxyType" aria-label="Proxy type">
-              <option value="residential">Residential (slower, undetectable)</option>
-              <option value="datacenter">Datacenter (faster, detectable)</option>
-            </select>
-          </div>
-        </div>
-        <div class="actions">
+        
+        <div class="actions" style="margin-top: 16px;">
           <button type="submit" id="goBtn">Search</button>
           <button type="button" id="proxyStatusBtn" style="background: var(--muted); margin-left: 8px;">Proxy Status</button>
         </div>
@@ -356,6 +393,11 @@ export const PORTAL_HTML = `<!DOCTYPE html>
     const providerSel = document.getElementById('provider');
     const resultsDiv = document.getElementById('results');
     const statusDiv = document.getElementById('status');
+    
+    // Collapsible filters
+    const filtersToggle = document.getElementById('filtersToggle');
+    const filtersContent = document.getElementById('filtersContent');
+    const filtersChevron = document.getElementById('filtersChevron');
 
     // Auth UI elements
     const authBtn = document.getElementById('authBtn');
@@ -370,6 +412,19 @@ export const PORTAL_HTML = `<!DOCTYPE html>
     const authNewBtn = document.getElementById('authNewBtn');
     const authCloseBtn = document.getElementById('authCloseBtn');
     const savedLoginsList = document.getElementById('savedLoginsList');
+
+    // ============== COLLAPSIBLE FILTERS ==============
+    filtersToggle.addEventListener('click', () => {
+      filtersContent.classList.toggle('expanded');
+      filtersToggle.classList.toggle('expanded');
+      filtersChevron.textContent = filtersContent.classList.contains('expanded') ? '▲' : '▼';
+    });
+
+    // ============== STATUS INDICATOR ==============
+    function updateStatus(state, message) {
+      statusDiv.textContent = message;
+      statusDiv.className = 'status ' + state;
+    }
 
     // ============== AUTH EVENT HANDLERS ==============
     authBtn.addEventListener('click', async () => {
@@ -483,6 +538,7 @@ export const PORTAL_HTML = `<!DOCTYPE html>
       const savedProxyType = localStorage.getItem('proxy_type') || 'residential';
       if (regionSel && savedRegion) regionSel.value = savedRegion;
       if (proxyTypeSel) proxyTypeSel.value = savedProxyType;
+      updateStatus('ready', 'Ready');
     });
 
     // Save region preference
@@ -557,7 +613,7 @@ export const PORTAL_HTML = `<!DOCTYPE html>
         return;
       }
 
-      statusDiv.textContent = 'Searching...';
+      updateStatus('searching', 'Searching…');
 
       try {
         const params = new URLSearchParams({
@@ -590,14 +646,16 @@ export const PORTAL_HTML = `<!DOCTYPE html>
           </div>
         \`).join('');
 
-        statusDiv.textContent = \`Found \${data.results?.length || 0} results\`;
+        const resultCount = data.results?.length || 0;
+        let statusMsg = \`Done — \${resultCount} result\${resultCount !== 1 ? 's' : ''}\`;
         if (data.proxy) {
-          statusDiv.textContent += \` (via \${data.proxy.region} \${data.proxy.type} proxy)\`;
+          statusMsg += \` (via \${data.proxy.region} \${data.proxy.type} proxy)\`;
         }
+        updateStatus('done', statusMsg);
 
       } catch (error) {
         console.error('Search error:', error);
-        statusDiv.textContent = 'Search failed';
+        updateStatus('error', 'Error');
         resultsDiv.innerHTML = \`<div class="card visible" style="color: var(--bad)">Error: \${error.message}</div>\`;
       }
     });

@@ -12,6 +12,7 @@ import { handleAggregate } from './handlers/aggregate.js'
 import { handleDiagnostics } from './handlers/diagnostics.js'
 import { handleHealth } from './handlers/health.js'
 import { handleProviderSelfTest } from './handlers/provider-selftest.js'
+import { handleProxyStats } from './handlers/proxy-stats.js'
 import { handleOptionsRequest, createErrorResponse } from './lib/response.js'
 import {
   logInfo,
@@ -136,10 +137,40 @@ export default {
         return response
       }
 
-      // Serve static HTML for all other routes
-      const htmlResponse = new Response('Hello World', {
+      // Handle proxy stats endpoint
+      if (url.pathname === '/api/proxy-stats') {
+        const response = await handleProxyStats(request, env)
+        logRequestEnd({
+          requestId,
+          method,
+          path: url.pathname,
+          ip
+        }, Date.now() - startTime, response.status)
+        return response
+      }
+
+      // Serve Service Worker
+      if (url.pathname === '/sw.js') {
+        const response = new Response('// Service Worker is handled by the platform', {
+          headers: {
+            'Content-Type': 'application/javascript',
+            'Cache-Control': 'public, max-age=86400',
+            'X-Request-ID': requestId
+          }
+        })
+        logRequestEnd({
+          requestId,
+          method,
+          path: url.pathname,
+          ip
+        }, Date.now() - startTime, response.status)
+        return response
+      }
+
+      // Serve static HTML for root and other routes
+      const htmlResponse = new Response(PORTAL_HTML, {
         headers: {
-          'Content-Type': 'text/plain',
+          'Content-Type': 'text/html; charset=utf-8',
           'X-Request-ID': requestId,
           'X-Response-Time': `${Date.now() - startTime}ms`,
           'Cache-Control': 'public, max-age=300' // Cache HTML for 5 minutes

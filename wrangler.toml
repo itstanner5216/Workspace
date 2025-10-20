@@ -23,6 +23,12 @@ TEMP_FAIL_COOLDOWN_MS = "300000"
 RETRY_MAX = "3"
 BACKOFF_BASE_MS = "1000"
 
+# Proxy Configuration (set via wrangler secret put PROXY_<REGION>_<TYPE>)
+# Comma-separated list of proxy URLs for each region
+# Format: PROXY_<REGION>_<TYPE> = "url1,url2,url3"
+# Regions: US, CA, UK, DE, NL, BR, AU, JP
+# Types: RESIDENTIAL, DATACENTER
+
 # Top-level KV namespaces (inherited by all environments)
 [[kv_namespaces]]
 binding = "CACHE"
@@ -51,7 +57,8 @@ LEDGER_DEFAULT_QUOTA_RESET_MS = "3600000"
 TEMP_FAIL_COOLDOWN_MS = "300000"
 RETRY_MAX = "3"
 BACKOFF_BASE_MS = "1000"
-# API keys are set via wrangler secret put command
+# API keys are NOT stored in this file for security.
+# Use `wrangler secret put <KEY_NAME>` to securely set API keys as secrets.
 
 [[env.production.kv_namespaces]]
 binding = "CACHE"

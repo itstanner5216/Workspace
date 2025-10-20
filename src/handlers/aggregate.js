@@ -70,14 +70,18 @@ export async function handleAggregate(request, env) {
     debug
   } = validation.data
 
+  // Extract proxy parameters
+  const region = url.searchParams.get('region') || ''
+  const proxyType = url.searchParams.get('proxyType') || 'residential'
+
   // Create cache key with validated parameters (without timestamp to enable proper caching)
-  const cacheKey = `search:${query}:${mode}:${fresh}:${limit}:${provider || 'all'}:${safeMode}:${debug || false}`
+  const cacheKey = `search:${query}:${mode}:${fresh}:${limit}:${provider || 'all'}:${safeMode}:${debug || false}:${region}`
 
   // Try to get from cache first
   try {
     const cachedResult = await env.CACHE.get(cacheKey)
     if (cachedResult) {
-      console.log('Cache hit for query:', query, 'from IP:', ip)
+      console.log('Cache hit for query:', query, 'from IP:', ip, 'region:', region)
       const cachedData = JSON.parse(cachedResult)
       return createSuccessResponse(cachedData, {
         cacheStatus: 'HIT',
@@ -88,10 +92,23 @@ export async function handleAggregate(request, env) {
     console.warn('Cache read error for query:', query, 'Error:', cacheError.message)
   }
 
-  console.log('Cache miss for query:', query, 'from IP:', ip)
+  console.log('Cache miss for query:', query, 'from IP:', ip, 'region:', region)
 
   try {
     const searchService = new SearchService(env)
+
+    // Get proxy info if region specified
+    let proxyInfo = null;
+    if (region) {
+      try {
+        const { ProxyService } = await import('../lib/proxy-service.js')
+        const proxyService = new ProxyService(env)
+        proxyInfo = proxyService.selectProxy(region, proxyType)
+        console.log('Using proxy:', proxyInfo?.url, 'for region:', region)
+      } catch (proxyError) {
+        console.warn('Proxy selection error:', proxyError.message)
+      }
+    }
 
     // Perform the search
     const results = await searchService.search({
@@ -107,7 +124,8 @@ export async function handleAggregate(request, env) {
       provider,
       safeMode,
       debug,
-      ip
+      ip,
+      proxy: proxyInfo
     })
 
     const response = {
@@ -119,6 +137,7 @@ export async function handleAggregate(request, env) {
       requestId: crypto.randomUUID(),
       totalUnique: results.totalUnique,
       dedupedCount: results.dedupedCount,
+      ...(region && proxyInfo && { proxy: { region: proxyInfo.region, type: proxyInfo.type } }),
       ...(debug && results.providerBreakdown && { providerBreakdown: results.providerBreakdown }),
       ...(debug && results.ledgerState && { ledgerState: results.ledgerState })
     }

@@ -72,7 +72,9 @@ export class SerpHouseProvider {
           if (response.status >= 500) {
             throw new Error('UPSTREAM_ERROR')
           }
-          throw new Error(`SerpHouse error: ${response.status} - URL: ${this.baseUrl}?${params.toString().replace(apiKey, '[REDACTED]')}`)
+          const safeParams = new URLSearchParams(params)
+          safeParams.set('api_token', '[REDACTED]')
+          throw new Error(`SerpHouse error: ${response.status} - URL: ${this.baseUrl}?${safeParams.toString()}`)
         }
 
         const data = await response.json()
@@ -99,8 +101,9 @@ export class SerpHouseProvider {
           break
         }
         
-        // Wait a bit before retry
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Wait with exponential backoff before retry
+        const backoff = Math.pow(2, attempt) * 1000 // 1s, 2s, etc.
+        await new Promise(resolve => setTimeout(resolve, backoff))
       }
     }
 

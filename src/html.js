@@ -100,9 +100,65 @@ export const PORTAL_HTML = `<!DOCTYPE html>
 </head>
 <body>
   <header role="banner">
-    <h1>Jack Portal</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h1>Jack Portal</h1>
+      <button id="authBtn" style="background: var(--accent-2); padding: 8px 14px; font-size: 13px;">Login</button>
+    </div>
   </header>
   <main id="main" role="main">
+    <!-- Auth Modal -->
+    <div id="authModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; padding: 20px;">
+      <div style="background: var(--panel); max-width: 400px; margin: auto; margin-top: 80px; border-radius: var(--radius); padding: 24px; max-height: 80vh; overflow-y: auto;">
+        <div class="title" style="margin-bottom: 20px;">Site Credentials</div>
+        
+        <!-- Auth Form -->
+        <div id="authForm" style="display: none;">
+          <label for="authSite">Site Domain (e.g., pornhub.com)</label>
+          <input type="text" id="authSite" placeholder="pornhub.com" style="margin-bottom: 12px;">
+          
+          <label for="authUsername">Username/Email</label>
+          <input type="text" id="authUsername" placeholder="your username" style="margin-bottom: 12px;">
+          
+          <label for="authPassword">Password</label>
+          <input type="password" id="authPassword" placeholder="••••••••" style="margin-bottom: 20px;">
+          
+          <div style="display: grid; gap: 8px; grid-template-columns: 1fr 1fr; margin-bottom: 16px;">
+            <button id="authSaveBtn" style="background: var(--ok);">Save Login</button>
+            <button id="authCancelBtn" style="background: var(--muted);">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Saved Logins List -->
+        <div id="loginsList" style="display: none;">
+          <div style="margin-bottom: 16px;">
+            <p style="color: var(--muted); font-size: 12px; margin: 0 0 12px;">Saved logins (auto-login when visiting):</p>
+            <div id="savedLoginsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+          
+          <div style="display: grid; gap: 8px; grid-template-columns: 1fr 1fr;">
+            <button id="authNewBtn" style="background: var(--accent);">Add New Login</button>
+            <button id="authCloseBtn" style="background: var(--muted);">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Proxy Status Modal -->
+    <div id="proxyModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; padding: 20px;">
+      <div style="background: var(--panel); max-width: 500px; margin: auto; margin-top: 80px; border-radius: var(--radius); padding: 24px; max-height: 80vh; overflow-y: auto;">
+        <div class="title" style="margin-bottom: 20px;">Proxy Status</div>
+        
+        <div id="proxyStatsContent" style="display: flex; flex-direction: column; gap: 16px;">
+          <p style="color: var(--muted); text-align: center;">Loading proxy statistics...</p>
+        </div>
+        
+        <div style="margin-top: 20px; display: grid; gap: 8px; grid-template-columns: 1fr 1fr;">
+          <button id="proxyRefreshBtn" style="background: var(--accent);">Refresh Stats</button>
+          <button id="proxyCloseBtn" style="background: var(--muted);">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div class="panel">
       <div class="title">Search</div>
       <form id="searchForm" role="search">
@@ -144,8 +200,32 @@ export const PORTAL_HTML = `<!DOCTYPE html>
             </select>
           </div>
         </div>
+        <div class="row">
+          <div>
+            <label for="region">Region (optional - uses proxy)</label>
+            <select id="region" aria-label="Proxy region">
+              <option value="">Auto-detect</option>
+              <option value="US">United States</option>
+              <option value="CA">Canada</option>
+              <option value="UK">United Kingdom</option>
+              <option value="DE">Germany</option>
+              <option value="NL">Netherlands</option>
+              <option value="BR">Brazil</option>
+              <option value="AU">Australia</option>
+              <option value="JP">Japan</option>
+            </select>
+          </div>
+          <div>
+            <label for="proxyType">Proxy Type</label>
+            <select id="proxyType" aria-label="Proxy type">
+              <option value="residential">Residential (slower, undetectable)</option>
+              <option value="datacenter">Datacenter (faster, detectable)</option>
+            </select>
+          </div>
+        </div>
         <div class="actions">
           <button type="submit" id="goBtn">Search</button>
+          <button type="button" id="proxyStatusBtn" style="background: var(--muted); margin-left: 8px;">Proxy Status</button>
         </div>
       </form>
     </div>
@@ -154,7 +234,120 @@ export const PORTAL_HTML = `<!DOCTYPE html>
   </main>
 
   <script>
-    // Basic client-side JavaScript for the search interface
+    // ============== AUTH MANAGER SYSTEM ==============
+    class SimpleAuthManager {
+      constructor() {
+        this.dbName = 'JackPortalAuthDB';
+        this.storeName = 'credentials';
+        this.db = null;
+        this.initialized = false;
+      }
+
+      async init() {
+        if (this.initialized) return;
+        return new Promise((resolve) => {
+          const request = indexedDB.open(this.dbName, 1);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(this.storeName)) {
+              db.createObjectStore(this.storeName, { keyPath: 'site' });
+            }
+          };
+          request.onsuccess = () => {
+            this.db = request.result;
+            this.initialized = true;
+            resolve();
+          };
+        });
+      }
+
+      // Simple XOR encryption (client-side only, no key management)
+      encrypt(text, siteKey) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(text);
+        const keyBytes = encoder.encode(siteKey);
+        const encrypted = [];
+        for (let i = 0; i < data.length; i++) {
+          encrypted.push(data[i] ^ keyBytes[i % keyBytes.length]);
+        }
+        return btoa(String.fromCharCode(...encrypted));
+      }
+
+      decrypt(encoded, siteKey) {
+        try {
+          const encrypted = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+          const keyBytes = new TextEncoder().encode(siteKey);
+          const decrypted = [];
+          for (let i = 0; i < encrypted.length; i++) {
+            decrypted.push(encrypted[i] ^ keyBytes[i % keyBytes.length]);
+          }
+          return new TextDecoder().decode(new Uint8Array(decrypted));
+        } catch {
+          return null;
+        }
+      }
+
+      async save(site, username, password) {
+        await this.init();
+        const encrypted = this.encrypt(JSON.stringify({ username, password }), site);
+        const record = {
+          site,
+          encrypted,
+          expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
+        };
+        return new Promise((resolve) => {
+          const tx = this.db.transaction([this.storeName], 'readwrite');
+          tx.objectStore(this.storeName).put(record);
+          tx.oncomplete = () => resolve(true);
+        });
+      }
+
+      async get(site) {
+        await this.init();
+        return new Promise((resolve) => {
+          const tx = this.db.transaction([this.storeName], 'readonly');
+          const request = tx.objectStore(this.storeName).get(site);
+          request.onsuccess = () => {
+            const record = request.result;
+            if (!record || record.expiresAt < Date.now()) {
+              resolve(null);
+              return;
+            }
+            try {
+              const decrypted = this.decrypt(record.encrypted, site);
+              resolve(JSON.parse(decrypted));
+            } catch {
+              resolve(null);
+            }
+          };
+        });
+      }
+
+      async list() {
+        await this.init();
+        return new Promise((resolve) => {
+          const tx = this.db.transaction([this.storeName], 'readonly');
+          const request = tx.objectStore(this.storeName).getAll();
+          request.onsuccess = () => {
+            const records = request.result.filter(r => r.expiresAt > Date.now());
+            resolve(records.map(r => ({ site: r.site, expiresAt: r.expiresAt })));
+          };
+        });
+      }
+
+      async delete(site) {
+        await this.init();
+        return new Promise((resolve) => {
+          const tx = this.db.transaction([this.storeName], 'readwrite');
+          tx.objectStore(this.storeName).delete(site);
+          tx.oncomplete = () => resolve(true);
+        });
+      }
+    }
+
+    const authManager = new SimpleAuthManager();
+
+    // ============== UI ELEMENTS ==============
     const searchForm = document.getElementById('searchForm');
     const qInput = document.getElementById('q');
     const modeSel = document.getElementById('modeSel');
@@ -163,6 +356,97 @@ export const PORTAL_HTML = `<!DOCTYPE html>
     const providerSel = document.getElementById('provider');
     const resultsDiv = document.getElementById('results');
     const statusDiv = document.getElementById('status');
+
+    // Auth UI elements
+    const authBtn = document.getElementById('authBtn');
+    const authModal = document.getElementById('authModal');
+    const authForm = document.getElementById('authForm');
+    const loginsList = document.getElementById('loginsList');
+    const authSite = document.getElementById('authSite');
+    const authUsername = document.getElementById('authUsername');
+    const authPassword = document.getElementById('authPassword');
+    const authSaveBtn = document.getElementById('authSaveBtn');
+    const authCancelBtn = document.getElementById('authCancelBtn');
+    const authNewBtn = document.getElementById('authNewBtn');
+    const authCloseBtn = document.getElementById('authCloseBtn');
+    const savedLoginsList = document.getElementById('savedLoginsList');
+
+    // ============== AUTH EVENT HANDLERS ==============
+    authBtn.addEventListener('click', async () => {
+      authModal.style.display = 'block';
+      await refreshLoginsList();
+    });
+
+    authCloseBtn.addEventListener('click', () => {
+      authModal.style.display = 'none';
+    });
+
+    authNewBtn.addEventListener('click', () => {
+      authForm.style.display = 'block';
+      loginsList.style.display = 'none';
+      authSite.value = '';
+      authUsername.value = '';
+      authPassword.value = '';
+      authSite.focus();
+    });
+
+    authCancelBtn.addEventListener('click', async () => {
+      authForm.style.display = 'none';
+      await refreshLoginsList();
+    });
+
+    authSaveBtn.addEventListener('click', async () => {
+      const site = authSite.value.trim().toLowerCase();
+      const username = authUsername.value.trim();
+      const password = authPassword.value;
+
+      if (!site || !username || !password) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      try {
+        await authManager.save(site, username, password);
+        alert(\`Saved login for \${site}\`);
+        authForm.style.display = 'none';
+        await refreshLoginsList();
+      } catch (error) {
+        alert('Failed to save credentials: ' + error.message);
+      }
+    });
+
+    async function refreshLoginsList() {
+      const sites = await authManager.list();
+      
+      if (sites.length === 0) {
+        loginsList.style.display = 'none';
+        authForm.style.display = 'block';
+      } else {
+        loginsList.style.display = 'block';
+        authForm.style.display = 'none';
+
+        savedLoginsList.innerHTML = sites.map(site => {
+          const expiresIn = Math.max(0, Math.floor((site.expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
+          return \`
+            <div style="background: var(--panel-2); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong>\${site.site}</strong>
+                <div style="font-size: 12px; color: var(--muted);">Expires in \${expiresIn}d</div>
+              </div>
+              <button onclick="deleteSiteLogin('\${site.site}')" style="background: var(--bad); padding: 6px 12px; font-size: 12px;">Delete</button>
+            </div>
+          \`;
+        }).join('');
+      }
+    }
+
+    window.deleteSiteLogin = async (site) => {
+      if (!confirm(\`Delete login for \${site}?\`)) return;
+      await authManager.delete(site);
+      await refreshLoginsList();
+    };
+
+    // ============== SEARCH HANDLER ==============
 
     searchForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -197,7 +481,10 @@ export const PORTAL_HTML = `<!DOCTYPE html>
             <div><strong>\${result.title}</strong></div>
             <div class="meta">Source: \${result.source} | Score: \${result.score}</div>
             <div>\${result.snippet}</div>
-            <div><a class="link" href="\${result.url}" target="_blank" rel="noopener">View Result</a></div>
+            <div>
+              <a class="link" href="\${result.url}" target="_blank" rel="noopener" 
+                 onclick="return handleResultClick('\${result.url}')">View Result</a>
+            </div>
           </div>
         \`).join('');
 
@@ -209,6 +496,173 @@ export const PORTAL_HTML = `<!DOCTYPE html>
         resultsDiv.innerHTML = \`<div class="card visible" style="color: var(--bad)">Error: \${error.message}</div>\`;
       }
     });
+
+    // ============== AUTO-LOGIN HANDLER ==============
+    window.handleResultClick = async (url) => {
+      try {
+        // Extract domain from URL
+        const urlObj = new URL(url);
+        const domain = urlObj.hostname.replace('www.', '');
+
+        // Check if we have saved credentials
+        const creds = await authManager.get(domain);
+        if (creds) {
+          // Store in sessionStorage to share with opened window
+          sessionStorage.setItem(\`auth_\${domain}\`, JSON.stringify(creds));
+          console.log('Auto-login info prepared for ' + domain);
+        }
+      } catch (error) {
+        console.error('Error preparing auto-login:', error);
+      }
+
+      // Allow normal link navigation
+      return true;
+    };
+
+    // ============== PROXY HANDLING ==============
+    const regionSel = document.getElementById('region');
+    const proxyTypeSel = document.getElementById('proxyType');
+    const proxyStatusBtn = document.getElementById('proxyStatusBtn');
+    const proxyModal = document.getElementById('proxyModal');
+    const proxyCloseBtn = document.getElementById('proxyCloseBtn');
+    const proxyRefreshBtn = document.getElementById('proxyRefreshBtn');
+    const proxyStatsContent = document.getElementById('proxyStatsContent');
+
+    // Load region preference from localStorage
+    window.addEventListener('load', () => {
+      const savedRegion = localStorage.getItem('proxy_region') || '';
+      const savedProxyType = localStorage.getItem('proxy_type') || 'residential';
+      if (regionSel && savedRegion) regionSel.value = savedRegion;
+      if (proxyTypeSel) proxyTypeSel.value = savedProxyType;
+    });
+
+    // Save region preference
+    if (regionSel) {
+      regionSel.addEventListener('change', () => {
+        localStorage.setItem('proxy_region', regionSel.value);
+        console.log('Region preference saved: ' + regionSel.value);
+      });
+    }
+
+    if (proxyTypeSel) {
+      proxyTypeSel.addEventListener('change', () => {
+        localStorage.setItem('proxy_type', proxyTypeSel.value);
+      });
+    }
+
+    // Proxy status button
+    if (proxyStatusBtn) {
+      proxyStatusBtn.addEventListener('click', async () => {
+        proxyModal.style.display = 'block';
+        await updateProxyStats();
+      });
+    }
+
+    if (proxyCloseBtn) {
+      proxyCloseBtn.addEventListener('click', () => {
+        proxyModal.style.display = 'none';
+      });
+    }
+
+    if (proxyRefreshBtn) {
+      proxyRefreshBtn.addEventListener('click', async () => {
+        await updateProxyStats();
+      });
+    }
+
+    async function updateProxyStats() {
+      try {
+        const response = await fetch('/api/proxy-stats');
+        const data = await response.json();
+
+        if (data.stats) {
+          const stats = data.stats;
+          proxyStatsContent.innerHTML = Object.entries(stats)
+            .map(([region, info]) => \`
+              <div style="background: var(--panel-2); padding: 12px; border-radius: 8px;">
+                <div style="font-weight: 600; margin-bottom: 6px;">\${region}</div>
+                <div style="font-size: 12px; color: var(--muted);">
+                  <div>Total Proxies: \${info.total}</div>
+                  <div>Active: \${info.active}</div>
+                  <div>Failed: \${info.failed}</div>
+                  <div>Requests: \${info.requests}</div>
+                </div>
+              </div>
+            \`).join('');
+        } else {
+          proxyStatsContent.innerHTML = '<p style="color: var(--muted);">Proxy service not configured</p>';
+        }
+      } catch (error) {
+        proxyStatsContent.innerHTML = \`<p style="color: var(--bad);">Error loading stats: \${error.message}</p>\`;
+      }
+    }
+
+    // Update search form to include region parameter
+    const originalSearchFormHandler = searchForm.onsubmit;
+    searchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const query = qInput.value.trim();
+      if (!query) {
+        alert('Please enter a search query');
+        return;
+      }
+
+      statusDiv.textContent = 'Searching...';
+
+      try {
+        const params = new URLSearchParams({
+          q: query,
+          mode: modeSel.value,
+          fresh: freshSel.value,
+          limit: limitInput.value,
+          provider: providerSel.value,
+          region: regionSel.value || '',
+          proxyType: proxyTypeSel.value || 'residential'
+        });
+
+        const response = await fetch(\`/api/search?\${params}\`);
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        // Display results
+        resultsDiv.innerHTML = (data.results || []).map(result => \`
+          <div class="card visible">
+            <div><strong>\${result.title}</strong></div>
+            <div class="meta">Source: \${result.source} | Score: \${result.score}</div>
+            <div>\${result.snippet}</div>
+            <div>
+              <a class="link" href="\${result.url}" target="_blank" rel="noopener" 
+                 onclick="return handleResultClick('\${result.url}')">View Result</a>
+            </div>
+          </div>
+        \`).join('');
+
+        statusDiv.textContent = \`Found \${data.results?.length || 0} results\`;
+        if (data.proxy) {
+          statusDiv.textContent += \` (via \${data.proxy.region} \${data.proxy.type} proxy)\`;
+        }
+
+      } catch (error) {
+        console.error('Search error:', error);
+        statusDiv.textContent = 'Search failed';
+        resultsDiv.innerHTML = \`<div class="card visible" style="color: var(--bad)">Error: \${error.message}</div>\`;
+      }
+    });
+
+    // ============== SERVICE WORKER REGISTRATION ==============
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((registration) => {
+          console.log('Service Worker registered:', registration);
+        }).catch((error) => {
+          console.log('Service Worker registration failed:', error);
+        });
+      });
+    }
   </script>
 </body>
 </html>`;

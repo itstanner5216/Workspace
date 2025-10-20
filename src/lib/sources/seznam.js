@@ -1,7 +1,7 @@
 export class SeznamProvider {
   constructor() {
     this.name = 'Seznam'
-    this.baseUrl = 'https://search-seznam.p.rapidapi.com/'
+    this.baseUrl = 'https://seznam-cz-search-engine-api.p.rapidapi.com/search'
     this.dailyCap = 6
     this.monthlyCap = 200
     this.ttl = 24 * 60 * 60 // 24 hours
@@ -12,7 +12,7 @@ export class SeznamProvider {
     const apiKey = env.RAPIDAPI_KEY
 
     if (!apiKey) {
-      console.warn('RapidAPI key not configured')
+      console.warn('Seznam API key not configured')
       return []
     }
 
@@ -42,7 +42,7 @@ export class SeznamProvider {
       const response = await fetch(`${this.baseUrl}?${params}`, {
         method: 'GET',
         headers: {
-          'x-rapidapi-host': 'search-seznam.p.rapidapi.com',
+          'x-rapidapi-host': 'seznam-cz-search-engine-api.p.rapidapi.com',
           'x-rapidapi-key': apiKey,
           'User-Agent': 'Jack-Portal/2.0.0'
         },

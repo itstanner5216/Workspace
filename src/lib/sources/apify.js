@@ -26,30 +26,20 @@ export class ApifyProvider {
     }
 
     try {
-      const runParams = {
-        queries: [query],
-        maxPagesPerQuery: 1,
-        resultsPerPage: Math.min(options.limit || 10, this.batchSize),
-        languageCode: 'en',
-        regionCode: 'us',
-        mobileResults: false
-      }
-
-      if (options.fresh && options.fresh !== 'all') {
-        const days = options.fresh.replace('d', '')
-        runParams.dateRange = `d${days}`
-      }
-
-      // Use synchronous endpoint
-      const response = await fetch(this.baseUrl, {
+      // Use synchronous endpoint with token in URL
+      const response = await fetch(`${this.baseUrl}?token=${apiKey}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'User-Agent': 'Jack-Portal/2.0.0'
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(runParams),
-        cf: { timeout: 30000 }
+        body: JSON.stringify({
+          queries: [query],
+          maxPagesPerQuery: 1,
+          resultsPerPage: Math.min(options.limit || 10, this.batchSize),
+          languageCode: 'en',
+          mobileResults: false
+        }),
+        signal: AbortSignal.timeout(30000)
       })
 
       if (!response.ok) {

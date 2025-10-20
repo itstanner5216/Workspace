@@ -1,7 +1,7 @@
 export class QualityPornProvider {
   constructor() {
     this.name = 'QualityPorn'
-    this.baseUrl = 'https://quality-porn.p.rapidapi.com/docs'
+    this.baseUrl = 'https://quality-porn.p.rapidapi.com/supported-sites'
     this.version = '1.0.0'
     this.dailyCap = 300
     this.monthlyCap = 9000
@@ -13,7 +13,7 @@ export class QualityPornProvider {
     const apiKey = env.RAPIDAPI_KEY
 
     if (!apiKey) {
-      console.warn('RapidAPI key not configured')
+      console.warn('QualityPorn API key not configured')
       return []
     }
 
@@ -27,24 +27,15 @@ export class QualityPornProvider {
     }
 
     try {
-      const params = new URLSearchParams({
-        q: query,
-        limit: Math.min(options.limit || 10, this.batchSize)
-      })
-
-      if (options.fresh && options.fresh !== 'all') {
-        const days = options.fresh.replace('d', '')
-        params.append('freshness', `d${days}`)
-      }
-
-      const response = await fetch(`${this.baseUrl}?${params}`, {
+      // QualityPorn API uses /supported-sites endpoint
+      // Since there's no direct search, we'll use supported sites as metadata
+      const response = await fetch('https://quality-porn.p.rapidapi.com/supported-sites', {
         method: 'GET',
         headers: {
           'x-rapidapi-host': 'quality-porn.p.rapidapi.com',
-          'x-rapidapi-key': apiKey,
-          'User-Agent': 'Jack-Portal/2.0.0'
+          'x-rapidapi-key': apiKey
         },
-        cf: { timeout: 10000 }
+        signal: AbortSignal.timeout(10000)
       })
 
       if (!response.ok) {

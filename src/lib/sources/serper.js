@@ -26,16 +26,17 @@ export class SerperProvider {
     }
 
     try {
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
+      const params = new URLSearchParams({
+        q: query,
+        apiKey: apiKey
+      })
+
+      const response = await fetch(`${this.baseUrl}?${params}`, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': apiKey
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          q: query,
-          num: Math.min(options.limit || 10, this.batchSize)
-        })
+        signal: AbortSignal.timeout(10000)
       })
 
       const data = await response.json()

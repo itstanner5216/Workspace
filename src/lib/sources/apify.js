@@ -1,7 +1,7 @@
 export class ApifyProvider {
   constructor() {
     this.name = 'Apify'
-    this.baseUrl = 'https://api.apify.com/v2'
+    this.baseUrl = 'https://api.apify.com/v2/acts/apify~google-search-scraper/run-sync-get-dataset-items'
     this.version = '1.0.0'
     this.monthlyCap = 1428
     this.ttl = 24 * 60 * 60 // 24 hours
@@ -20,7 +20,7 @@ export class ApifyProvider {
     if (ledger) {
       const state = ledger.getProviderState('apify')
       if (state.monthlyUsed >= this.monthlyCap) {
-        ledger.markQuotaExceeded('apify', this.getNextMonthlyReset())
+        ledger.markQuotaExceeded('apify')
         throw new Error('QUOTA_EXCEEDED_MONTHLY')
       }
     }
@@ -40,11 +40,12 @@ export class ApifyProvider {
         runParams.dateRange = `d${days}`
       }
 
-      // Use synchronous endpoint to avoid 400 errors
-      const response = await fetch(`${this.baseUrl}/acts/apify~google-search-scraper/run-sync-get-dataset-items?token=${apiKey}`, {
+      // Use synchronous endpoint
+      const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
           'User-Agent': 'Jack-Portal/2.0.0'
         },
         body: JSON.stringify(runParams),
@@ -53,19 +54,10 @@ export class ApifyProvider {
 
       if (!response.ok) {
         if (response.status === 429) {
-          if (ledger) ledger.markQuotaExceeded('apify', this.getNextMonthlyReset())
-          throw new Error('RATE_LIMIT')
+          if (ledger) ledger.markQuotaExceeded('apify')
+          throw new Error('QUOTA_EXCEEDED')
         }
-        if (response.status === 400 || response.status === 422) {
-          throw new Error('BAD_PARAMS')
-        }
-        if (response.status === 404) {
-          throw new Error('BAD_HOST')
-        }
-        if (response.status >= 500) {
-          throw new Error('UPSTREAM_ERROR')
-        }
-        throw new Error(`Apify error: ${response.status} - Query: ${query}`)
+        throw new Error(`Apify error: ${response.status}`)
       }
 
       const results = await response.json()
@@ -79,10 +71,8 @@ export class ApifyProvider {
 
     } catch (error) {
       if (ledger) {
-        if (error.message.includes('QUOTA') || error.message.includes('RATE_LIMIT')) {
-          ledger.markQuotaExceeded('apify', this.getNextMonthlyReset())
-        } else if (error.message.includes('UPSTREAM_ERROR') || error.message.includes('5xx')) {
-          ledger.recordError('apify', '5xx')
+        if (error.message.includes('QUOTA')) {
+          ledger.markQuotaExceeded('apify')
         } else {
           ledger.recordError('apify', '5xx')
         }

@@ -1,91 +1,75 @@
 export class QualityPornProvider {
   constructor() {
     this.name = 'QualityPorn'
-    this.baseUrl = 'https://quality-porn.p.rapidapi.com'
+    this.baseUrl = 'https://quality-porn.p.rapidapi.com/docs'
     this.version = '1.0.0'
+    this.dailyCap = 300
     this.monthlyCap = 9000
     this.ttl = 24 * 60 * 60 // 24 hours
     this.batchSize = 20
   }
 
   async search(query, options, env) {
-    const apiKey = env.QUALITYPORN_API_KEY
+    const apiKey = env.RAPIDAPI_KEY
 
     if (!apiKey) {
-      console.warn('QualityPorn API key not configured')
+      console.warn('RapidAPI key not configured')
       return []
     }
 
     const ledger = options.ledger
     if (ledger) {
       const state = ledger.getProviderState('qualityporn')
-      if (state.monthlyUsed >= this.monthlyCap) {
-        ledger.markQuotaExceeded('qualityporn')
-        throw new Error('QUOTA_EXCEEDED_MONTHLY')
+      if (state.dailyUsed >= this.dailyCap) {
+        ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
+        throw new Error('QUOTA_EXCEEDED_DAILY')
       }
     }
 
     try {
       const params = new URLSearchParams({
-        query: query,
-        page: 1,
-        timeout: 5000
+        q: query,
+        limit: Math.min(options.limit || 10, this.batchSize)
       })
 
-      const response = await fetch(`${this.baseUrl}/search?${params}`, {
+      if (options.fresh && options.fresh !== 'all') {
+        const days = options.fresh.replace('d', '')
+        params.append('freshness', `d${days}`)
+      }
+
+      const response = await fetch(`${this.baseUrl}?${params}`, {
         method: 'GET',
         headers: {
+          'x-rapidapi-host': 'quality-porn.p.rapidapi.com',
           'x-rapidapi-key': apiKey,
-          'x-rapidapi-host': 'quality-porn.p.rapidapi.com'
+          'User-Agent': 'Jack-Portal/2.0.0'
         },
-        cf: {
-          cacheTtl: this.ttl,
-          cacheEverything: true
-        }
+        cf: { timeout: 10000 }
       })
 
       if (!response.ok) {
-        if (response.status === 400) {
-          throw new Error('BAD_PARAMS')
-        }
-        if (response.status === 401 || response.status === 403) {
-          throw new Error('BAD_PARAMS') // API key issues
-        }
-        if (response.status === 404) {
-          throw new Error('BAD_HOST')
-        }
         if (response.status === 429) {
-          if (ledger) ledger.markQuotaExceeded('qualityporn')
-          throw new Error('RATE_LIMIT')
+          if (ledger) ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
+          throw new Error('QUOTA_EXCEEDED')
         }
-        if (response.status >= 500) {
-          throw new Error('UPSTREAM_ERROR')
-        }
-        throw new Error('UPSTREAM_ERROR') // Default to upstream error for unknown status codes
+        throw new Error(`QualityPorn error: ${response.status}`)
       }
 
       const data = await response.json()
 
       if (ledger) {
         ledger.recordSuccess('qualityporn')
-        ledger.incrementMonthlyUsed('qualityporn')
+        ledger.incrementDailyUsed('qualityporn')
       }
 
-      // Add lightweight telemetry for max results detection
-      console.log(`QualityPorn telemetry: items_returned=${data?.results?.length || data?.videos?.length || data?.length || 0}, pages_requested=1, server_pagination_hints=unknown`)
-
-      return this.normalizeResults(data.results || data.videos || data || [], options)
+      return this.normalizeResults(data.results || [], options)
 
     } catch (error) {
       if (ledger) {
         if (error.message.includes('QUOTA')) {
-          ledger.markQuotaExceeded('qualityporn')
-        } else if (error.message.includes('RATE_LIMIT')) {
-          ledger.markQuotaExceeded('qualityporn')
-        } else if (error.message.includes('UPSTREAM_ERROR') || error.message.includes('5')) {
-          ledger.recordError('qualityporn', '5xx')
+          ledger.markQuotaExceeded('qualityporn', this.getNextDailyReset())
         } else {
-          ledger.recordError('qualityporn', '4xx')
+          ledger.recordError('qualityporn', '5xx')
         }
       }
       throw error
@@ -107,5 +91,15 @@ export class QualityPornProvider {
         tags: item.tags || []
       }
     }))
+  }
+
+  getNextDailyReset() {
+    const now = new Date()
+    const nextReset = new Date(now)
+    nextReset.setUTCHours(4, 0, 0, 0)
+    if (nextReset <= now) {
+      nextReset.setDate(nextReset.getDate() + 1)
+    }
+    return nextReset.toISOString()
   }
 }

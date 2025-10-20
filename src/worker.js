@@ -11,8 +11,6 @@ import { PORTAL_HTML } from './html.js'
 import { handleAggregate } from './handlers/aggregate.js'
 import { handleDiagnostics } from './handlers/diagnostics.js'
 import { handleHealth } from './handlers/health.js'
-import { handleProviderSelfTest } from './handlers/provider-selftest.js'
-import { handleProxyStats } from './handlers/proxy-stats.js'
 import { handleOptionsRequest, createErrorResponse } from './lib/response.js'
 import {
   logInfo,
@@ -87,12 +85,7 @@ export default {
         const response = await handleAggregate(request, env)
 
         // Add request tracking headers
-        // Clone response to avoid exhausting body stream if already consumed
-        const newResponse = new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: new Headers(response.headers)
-        })
+        const newResponse = new Response(response.body, response)
         newResponse.headers.set('X-Request-ID', requestId)
         newResponse.headers.set('X-Response-Time', `${Date.now() - startTime}ms`)
         newResponse.headers.set('X-Powered-By', 'Jack-Portal/2.0.0')
@@ -118,64 +111,10 @@ export default {
         return response
       }
 
-      // Handle provider self-test endpoint (requires DEBUG mode or X-Diag-Token)
-      if (url.pathname === '/api/provider-selftest') {
-        const response = await handleProviderSelfTest(request, env)
-        logRequestEnd({
-          requestId,
-          method,
-          path: url.pathname,
-          ip
-        }, Date.now() - startTime, response.status)
-        return response
-      }
-
-      // Handle provider self-test-all endpoint (alias for comprehensive testing)
-      if (url.pathname === '/api/provider-selftest-all') {
-        const response = await handleProviderSelfTest(request, env)
-        logRequestEnd({
-          requestId,
-          method,
-          path: url.pathname,
-          ip
-        }, Date.now() - startTime, response.status)
-        return response
-      }
-
-      // Handle proxy stats endpoint
-      if (url.pathname === '/api/proxy-stats') {
-        const response = await handleProxyStats(request, env)
-        logRequestEnd({
-          requestId,
-          method,
-          path: url.pathname,
-          ip
-        }, Date.now() - startTime, response.status)
-        return response
-      }
-
-      // Serve Service Worker
-      if (url.pathname === '/sw.js') {
-        const response = new Response('// Service Worker is handled by the platform', {
-          headers: {
-            'Content-Type': 'application/javascript',
-            'Cache-Control': 'public, max-age=86400',
-            'X-Request-ID': requestId
-          }
-        })
-        logRequestEnd({
-          requestId,
-          method,
-          path: url.pathname,
-          ip
-        }, Date.now() - startTime, response.status)
-        return response
-      }
-
-      // Serve static HTML for root and other routes
-      const htmlResponse = new Response(PORTAL_HTML, {
+      // Serve static HTML for all other routes
+      const htmlResponse = new Response('Hello World', {
         headers: {
-          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Type': 'text/plain',
           'X-Request-ID': requestId,
           'X-Response-Time': `${Date.now() - startTime}ms`,
           'Cache-Control': 'public, max-age=300' // Cache HTML for 5 minutes

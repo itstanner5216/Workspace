@@ -1,123 +1,104 @@
-// src/lib/sources/adultmedia.js
-/**
- * @deprecated This provider has been removed from main search chains and is no longer maintained.
- * Consider removing this file entirely.
- */
-
- /**
-  * @deprecated This provider is deprecated and no longer maintained.
-  */
 export class AdultMediaProvider {
   constructor() {
     this.name = 'AdultMedia'
-    // Switched to the confirmed working endpoint
     this.baseUrl = 'https://porn-api-adultdatalink.p.rapidapi.com/pornpics/search'
-    this.version = '1.0.0'
-    this.monthlyCap = 5000
-    this.ttl = 3 * 24 * 60 * 60 // 3 days
-    this.batchSize = 20
+    this.requestsDailyCap = 50 // 25 objects/request × 50 = 1250 objects
+    this.objectsDailyCap = 1250 // API's actual quota
+    this.monthlyCap = 1500 // requests per month
+    this.ttl = 5 * 24 * 60 * 60 // 5 days
+    this.batchSize = 25
   }
 
   async search(query, options, env) {
-    const apiKey = env.ADULTMEDIA_API_KEY
+    const apiKey = env.RAPIDAPI_KEY
 
     if (!apiKey) {
-      console.warn('AdultMedia API key not configured')
+      console.warn('RapidAPI key not configured')
       return []
     }
 
     const ledger = options.ledger
     if (ledger) {
       const state = ledger.getProviderState('adultmedia')
-      if (state.monthlyUsed >= this.monthlyCap) {
-        ledger.markQuotaExceeded('adultmedia')
-        throw new Error('QUOTA_EXCEEDED_MONTHLY')
+      if (state.requestsDailyUsed >= this.requestsDailyCap) {
+        ledger.markQuotaExceeded('adultmedia', this.getNextDailyReset())
+        throw new Error('QUOTA_EXCEEDED_DAILY')
       }
     }
 
     try {
       const params = new URLSearchParams({
-        query: query,
-        // The 'count' parameter is correct for this API
-        count: Math.min(options.limit || 10, this.batchSize)
+        q: query,
+        limit: Math.min(options.limit || 10, this.batchSize)
       })
+
+      if (options.fresh && options.fresh !== 'all') {
+        const days = options.fresh.replace('d', '')
+        params.append('freshness', `d${days}`)
+      }
 
       const response = await fetch(`${this.baseUrl}?${params}`, {
         method: 'GET',
         headers: {
-          'X-RapidAPI-Key': apiKey,
-          // Host header now matches the working endpoint
-          'X-RapidAPI-Host': 'porn-api-adultdatalink.p.rapidapi.com'
+          'x-rapidapi-host': 'porn-api-adultdatalink.p.rapidapi.com',
+          'x-rapidapi-key': apiKey,
+          'User-Agent': 'Jack-Portal/2.0.0'
         },
-        cf: {
-          cacheTtl: this.ttl,
-          cacheEverything: true
-        }
+        cf: { timeout: 15000 }
       })
-
-      if (!response.ok) {
-        if (response.status === 400) {
-          throw new Error('BAD_PARAMS')
-        }
-        if (response.status === 401 || response.status === 403) {
-          throw new Error('BAD_PARAMS') // API key issues
-        }
-        if (response.status === 404) {
-          throw new Error('BAD_HOST')
-        }
-        if (response.status === 429) {
-          if (ledger) ledger.markQuotaExceeded('adultmedia')
-          throw new Error('RATE_LIMIT')
-        }
-        if (response.status >= 500) {
-          throw new Error('UPSTREAM_ERROR')
-        }
-        throw new Error('UPSTREAM_ERROR') // Default to upstream error for unknown status codes
-      }
 
       const data = await response.json()
 
-      if (ledger) {
-        ledger.recordSuccess('adultmedia')
-        ledger.incrementMonthlyUsed('adultmedia')
+      if (!response.ok) {
+        if (response.status === 429) {
+          if (ledger) ledger.markQuotaExceeded('adultmedia', this.getNextDailyReset())
+          throw new Error('QUOTA_EXCEEDED')
+        }
+        throw new Error(`AdultMedia API error: ${response.status}`)
       }
 
-      // Use the new, specific normalizer for this API's data
-      return this.normalizeResults(data.images || [], options)
+      if (ledger) {
+        ledger.recordSuccess('adultmedia')
+        ledger.incrementRequestsDailyUsed('adultmedia')
+        // Increment objects based on actual results returned
+        const objectsReturned = (data.results || []).length
+        ledger.incrementObjectsDailyUsed('adultmedia', objectsReturned)
+      }
+
+      return (data.results || []).map(item => ({
+        title: item.title || 'No title',
+        url: item.url || '#',
+        snippet: item.description || '',
+        score: item.score || 0,
+        thumbnail: item.thumbnail || null,
+        published_at: item.published_at || null,
+        author: item.author || null,
+        extra: {
+          provider: 'adultmedia',
+          category: item.category,
+          tags: item.tags
+        }
+      }))
 
     } catch (error) {
       if (ledger) {
         if (error.message.includes('QUOTA')) {
-          ledger.markQuotaExceeded('adultmedia')
-        } else if (error.message.includes('RATE_LIMIT')) {
-          ledger.markQuotaExceeded('adultmedia')
-        } else if (error.message.includes('UPSTREAM_ERROR') || error.message.includes('5')) {
-          ledger.recordError('adultmedia', '5xx')
+          ledger.markQuotaExceeded('adultmedia', this.getNextDailyReset())
         } else {
-          ledger.recordError('adultmedia', '4xx')
+          ledger.recordError('adultmedia', '5xx')
         }
       }
       throw error
     }
   }
 
-  /**
-   * Rewritten to handle the data structure from the porn-api-adultdatalink endpoint.
-   */
-  normalizeResults(results, options) {
-    return results.map(item => ({
-      title: item.title || 'No title',
-      url: item.image_url || item.url || '#',
-      snippet: item.source || '',
-      published_at: null, // This data is not available from this API
-      author: item.source || null,
-      thumbnail: item.thumb_url || item.image_url || null,
-      score: 0.5,
-      extra: {
-        provider: 'adultmedia',
-        image_id: item.id,
-        source: item.source
-      }
-    }))
+  getNextDailyReset() {
+    const now = new Date()
+    const nextReset = new Date(now)
+    nextReset.setUTCHours(4, 0, 0, 0)
+    if (nextReset <= now) {
+      nextReset.setDate(nextReset.getDate() + 1)
+    }
+    return nextReset.toISOString()
   }
 }

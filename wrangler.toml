@@ -7,8 +7,22 @@ compatibility_flags = ["nodejs_compat"]
 # [build]
 # command = "npm run build"
 
-# Top-level vars (inherited by all environments unless overridden)
-[vars]
+# Environment-specific overrides
+[env.production]
+# Environment variables for API keys and configuration
+# Add your API keys here or use wrangler secret put <name>
+GOOGLE_API_KEY = ""
+GOOGLE_CSE_ID = ""
+SERPAPI_API_KEY = ""
+SERPER_API_KEY = ""
+YANDEX_API_KEY = ""
+BRAVE_API_KEY = ""
+SERPHOUSE_API_KEY = ""
+ADULTMEDIA_API_KEY = ""
+QUALITYPORN_API_KEY = ""
+APIFY_API_KEY = ""
+SCRAPERS_API_KEY = ""
+ADAPTERS_API_KEY = ""
 USER_AGENT = "Jack-Portal/2.0.0"
 TIMEOUT = "10000"
 DEFAULT_LIMIT = "10"
@@ -18,18 +32,28 @@ CACHE_TTL = "3600"
 FOLLOW_LINKS = "false"
 INCLUDE_REDDIT = "false"
 FETCH_TIMEOUT_MS = "10000"
-LEDGER_DEFAULT_QUOTA_RESET_MS = "3600000"
-TEMP_FAIL_COOLDOWN_MS = "300000"
+ENVIRONMENT = "production"
+
+# Provider Ledger Configuration
+LEDGER_DEFAULT_QUOTA_RESET_MS = "3600000"  # 1 hour default
+TEMP_FAIL_COOLDOWN_MS = "300000"  # 5 minutes
 RETRY_MAX = "3"
 BACKOFF_BASE_MS = "1000"
 
-# Proxy Configuration (set via wrangler secret put PROXY_<REGION>_<TYPE>)
-# Comma-separated list of proxy URLs for each region
-# Format: PROXY_<REGION>_<TYPE> = "url1,url2,url3"
-# Regions: US, CA, UK, DE, NL, BR, AU, JP
-# Types: RESIDENTIAL, DATACENTER
+# KV namespace for caching
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
 
-# Top-level KV namespaces (inherited by all environments)
+# KV namespace for provider ledger
+[[env.production.kv_namespaces]]
+binding = "PROVIDER_LEDGER"
+id = "d85c23fcfa9e4e42b6f8d18d28af551d"
+
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+
+# KV namespace for caching
 [[kv_namespaces]]
 binding = "CACHE"
 id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
@@ -40,37 +64,6 @@ preview_id = "02133c1d0165429f8bd8960915d0994e"
 binding = "PROVIDER_LEDGER"
 id = "d85c23fcfa9e4e42b6f8d18d28af551d"
 preview_id = "provider_ledger_preview_id"
-
-# Environment-specific overrides
-[env.production.vars]
-ENVIRONMENT = "production"
-USER_AGENT = "Jack-Portal/2.0.0"
-TIMEOUT = "10000"
-DEFAULT_LIMIT = "10"
-MAX_LIMIT = "20"
-MIN_LIMIT = "3"
-CACHE_TTL = "3600"
-FOLLOW_LINKS = "false"
-INCLUDE_REDDIT = "false"
-FETCH_TIMEOUT_MS = "10000"
-LEDGER_DEFAULT_QUOTA_RESET_MS = "3600000"
-TEMP_FAIL_COOLDOWN_MS = "300000"
-RETRY_MAX = "3"
-BACKOFF_BASE_MS = "1000"
-# API keys are NOT stored in this file for security.
-# Use `wrangler secret put <KEY_NAME>` to securely set API keys as secrets.
-
-[[env.production.kv_namespaces]]
-binding = "CACHE"
-id = "6779e4f7493e4b6ca1c8e2ce5b2ebe39"
-
-[[env.production.kv_namespaces]]
-binding = "PROVIDER_LEDGER"
-id = "d85c23fcfa9e4e42b6f8d18d28af551d"
-
-[env.staging.vars]
-ENVIRONMENT = "staging"
-
 
 # Durable Objects (commented out - using KV for caching instead)
 # [[durable_objects.bindings]]

@@ -98,12 +98,28 @@ export function createErrorResponse(message, status = 500, details = {}) {
 }
 
 /**
- * Creates a success response with metadata
+ * Creates a success response with metadata and optional status code
  * @param {Object} data - The response data
- * @param {Object} metadata - Additional metadata
+ * @param {Object|number} metadataOrStatus - Metadata object or HTTP status code
  * @returns {Response} - The success response
  */
-export function createSuccessResponse(data, metadata = {}) {
+export function createSuccessResponse(data, metadataOrStatus = {}) {
+  let status = 200
+  let metadata = {}
+
+  // Handle both (data, statusCode) and (data, metadata) calling conventions
+  if (typeof metadataOrStatus === 'number') {
+    status = metadataOrStatus
+  } else if (typeof metadataOrStatus === 'object') {
+    metadata = metadataOrStatus
+    // If metadata includes status, extract it
+    if (metadata.status && typeof metadata.status === 'number') {
+      status = metadata.status
+      const { status: _, ...rest } = metadata
+      metadata = rest
+    }
+  }
+
   const responseData = {
     ...data,
     metadata: {
@@ -114,6 +130,7 @@ export function createSuccessResponse(data, metadata = {}) {
   }
 
   return createCORSResponse(responseData, {
+    status,
     headers: {
       'X-Request-ID': responseData.metadata.requestId,
       'X-Response-Type': 'Success'

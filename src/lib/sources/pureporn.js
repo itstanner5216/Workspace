@@ -102,27 +102,30 @@ export class PurepornProvider {
   normalizeResults(results, options) {
     if (!Array.isArray(results)) return []
 
-    return results.map(item => {
-      // Only accept HTTPS links; drop data: and non-http(s)
-      if (item.imageUrl && !item.imageUrl.startsWith('https://')) return null
-      if (item.embeddingUrl && !item.embeddingUrl.startsWith('https://')) return null
-
-      return {
-        title: item.title || 'No title',
-        url: item.embeddingUrl || item.imageUrl || '#',
-        snippet: item.title || '',
-        published_at: item.publishDate || null,
-        author: item.creator || null,
-        thumbnail: item.imageUrl || null,
-        score: 0.5,
-        extra: {
-          provider: 'pureporn',
-          duration: item.duration,
-          views: item.views,
-          tags: item.tags ? item.tags.map(tag => tag.name || tag) : [],
-          embed_url: item.embeddingUrl
-        }
+    // Combine filtering and mapping for performance
+    return results.reduce((acc, item) => {
+      if (
+        (!item.imageUrl || item.imageUrl.startsWith('https://')) &&
+        (!item.embeddingUrl || item.embeddingUrl.startsWith('https://'))
+      ) {
+        acc.push({
+          title: item.title || 'No title',
+          url: item.embeddingUrl || item.imageUrl || '#',
+          snippet: item.title || '',
+          published_at: item.publishDate || null,
+          author: item.creator || null,
+          thumbnail: item.imageUrl || null,
+          score: 0.5,
+          extra: {
+            provider: 'pureporn',
+            duration: item.duration,
+            views: item.views,
+            tags: item.tags ? item.tags.map(tag => tag.name || tag) : [],
+            embed_url: item.embeddingUrl
+          }
+        });
       }
-    }).filter(item => item !== null)
+      return acc;
+    }, []);
   }
 }

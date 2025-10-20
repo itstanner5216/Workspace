@@ -41,8 +41,8 @@ function generateRateLimitKey(type, identifier) {
  * @returns {Promise<Object>} - {allowed: boolean, remaining: number, resetTime: number}
  */
 export async function checkRateLimit(env, ip, endpoint = 'search') {
+  const now = Date.now()
   try {
-    const now = Date.now()
     const results = await Promise.all([
       // Check IP-based rate limit
       checkSpecificRateLimit(env, 'ip', ip),

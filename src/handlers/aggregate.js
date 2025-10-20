@@ -1,18 +1,6 @@
 /**
  * Aggregate Search Handler
  * Handles search requests across multiple providers with caching
-     const response = {
-      results: results.results,
-      query,
-      mode,
-      timestamp: Date.now(),
-      cached: false,
-      requestId: crypto.randomUUID(),
-      totalUnique: results.totalUnique,
-      dedupedCount: results.dedupedCount,
-      ...(debug && results.providerBreakdown && { providerBreakdown: results.providerBreakdown }),
-      ...(debug && results.ledgerState && { ledgerState: results.ledgerState })
-    }e handlers/aggregate
  */
 
 import { SearchService } from '../lib/search-service.js'
@@ -75,7 +63,8 @@ export async function handleAggregate(request, env) {
   const proxyType = url.searchParams.get('proxyType') || 'residential'
 
   // Create cache key with validated parameters (without timestamp to enable proper caching)
-  const cacheKey = `search:${query}:${mode}:${fresh}:${limit}:${provider || 'all'}:${safeMode}:${debug || false}:${region}`
+  // Include proxyType and region to prevent cache collisions with different proxy settings
+  const cacheKey = `search:${query}:${mode}:${fresh}:${limit}:${provider || 'all'}:${safeMode}:${debug || false}:${region}:${proxyType}`
 
   // Try to get from cache first
   try {

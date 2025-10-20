@@ -75,9 +75,20 @@ export class XnxxProvider {
       }
 
       // Add lightweight telemetry for max results detection
-      console.log(`XNXX telemetry: items_returned=${[data].length}, pages_requested=1, server_pagination_hints=unknown`)
+      console.log(`XNXX telemetry: items_returned=${data.results?.length || 0}, pages_requested=1, server_pagination_hints=unknown`)
 
-      return this.normalizeResults([data] || [], options)
+      // Robustly handle different API response structures
+      let resultsArray = [];
+      if (Array.isArray(data?.results)) {
+        resultsArray = data.results;
+      } else if (Array.isArray(data)) {
+        resultsArray = data;
+      } else if (data?.results && typeof data.results === 'object') {
+        resultsArray = Object.values(data.results);
+      } else if (typeof data === 'object' && data !== null) {
+        resultsArray = [data];
+      }
+      return this.normalizeResults(resultsArray, options)
 
     } catch (error) {
       if (ledger) {

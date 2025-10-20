@@ -446,57 +446,6 @@ export const PORTAL_HTML = `<!DOCTYPE html>
       await refreshLoginsList();
     };
 
-    // ============== SEARCH HANDLER ==============
-
-    searchForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const query = qInput.value.trim();
-      if (!query) {
-        alert('Please enter a search query');
-        return;
-      }
-
-      statusDiv.textContent = 'Searching...';
-
-      try {
-        const params = new URLSearchParams({
-          q: query,
-          mode: modeSel.value,
-          fresh: freshSel.value,
-          limit: limitInput.value,
-          provider: providerSel.value
-        });
-
-        const response = await fetch(\`/api/search?\${params}\`);
-        const data = await response.json();
-
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        // Display results
-        resultsDiv.innerHTML = (data.results || []).map(result => \`
-          <div class="card visible">
-            <div><strong>\${result.title}</strong></div>
-            <div class="meta">Source: \${result.source} | Score: \${result.score}</div>
-            <div>\${result.snippet}</div>
-            <div>
-              <a class="link" href="\${result.url}" target="_blank" rel="noopener" 
-                 onclick="return handleResultClick('\${result.url}')">View Result</a>
-            </div>
-          </div>
-        \`).join('');
-
-        statusDiv.textContent = \`Found \${data.results?.length || 0} results\`;
-
-      } catch (error) {
-        console.error('Search error:', error);
-        statusDiv.textContent = 'Search failed';
-        resultsDiv.innerHTML = \`<div class="card visible" style="color: var(--bad)">Error: \${error.message}</div>\`;
-      }
-    });
-
     // ============== AUTO-LOGIN HANDLER ==============
     window.handleResultClick = async (url) => {
       try {

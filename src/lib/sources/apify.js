@@ -27,7 +27,7 @@ export class ApifyProvider {
 
     try {
       const runParams = {
-        queries: query,
+        queries: [query],
         maxPagesPerQuery: 1,
         resultsPerPage: Math.min(options.limit || 10, this.batchSize),
         languageCode: 'en',

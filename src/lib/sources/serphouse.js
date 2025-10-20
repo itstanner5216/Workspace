@@ -72,9 +72,8 @@ export class SerpHouseProvider {
           if (response.status >= 500) {
             throw new Error('UPSTREAM_ERROR')
           }
-          const safeParams = new URLSearchParams(params)
-          safeParams.set('api_token', '[REDACTED]')
-          throw new Error(`SerpHouse error: ${response.status} - URL: ${this.baseUrl}?${safeParams.toString()}`)
+          const safeUrl = `${this.baseUrl}?${params.toString()}`.replace(new RegExp(apiKey, 'g'), '[REDACTED]')
+          throw new Error(`SerpHouse error: ${response.status} - URL: ${safeUrl}`)
         }
 
         const data = await response.json()
@@ -83,6 +82,8 @@ export class SerpHouseProvider {
           ledger.recordSuccess('serphouse')
           ledger.incrementDailyUsed('serphouse')
         }
+
+        return this.normalizeResults(data.results || data || [], options)
 
         return this.normalizeResults(data.results || data || [], options)
 

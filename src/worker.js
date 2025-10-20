@@ -87,7 +87,12 @@ export default {
         const response = await handleAggregate(request, env)
 
         // Add request tracking headers
-        const newResponse = new Response(response.body, response)
+        // Clone response to avoid exhausting body stream if already consumed
+        const newResponse = new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: new Headers(response.headers)
+        })
         newResponse.headers.set('X-Request-ID', requestId)
         newResponse.headers.set('X-Response-Time', `${Date.now() - startTime}ms`)
         newResponse.headers.set('X-Powered-By', 'Jack-Portal/2.0.0')

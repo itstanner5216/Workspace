@@ -25,7 +25,7 @@ export class SerplyProvider {
     }
 
     // Check cache first
-    const cacheKey = `serply:${query}:yandex`
+    const cacheKey = `serply:${query}`
     if (!options.cache_bypass && env.CACHE) {
       try {
         const cachedResult = await env.CACHE.get(cacheKey)

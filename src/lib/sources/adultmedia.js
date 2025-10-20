@@ -1,5 +1,12 @@
 // src/lib/sources/adultmedia.js
+/**
+ * @deprecated This provider has been removed from main search chains and is no longer maintained.
+ * Consider removing this file entirely.
+ */
 
+ /**
+  * @deprecated This provider is deprecated and no longer maintained.
+  */
 export class AdultMediaProvider {
   constructor() {
     this.name = 'AdultMedia'
